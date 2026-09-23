@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Raccordements</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #F4F5F1;
+    --surface: #FFFFFF;
+    --surface-alt: #EBF0EA;
+    --ink: #131A16;
+    --ink-muted: #627067;
+    --line: #DCE2D7;
+    --accent: #FF6A18;
+    --accent-ink: #FFFFFF;
+    --blue: #1B4B91;
+    --blue-tint: #EEF3FA;
+    --success: #1E7A4C;
+    --success-tint: #E8F5ED;
+    --danger: #B8391F;
+    --danger-tint: #FBECE8;
+    --orange-soft: #FAF0E8;
+    --orange-ink: #A64B14;
+    --radius: 10px;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121517;
+      --surface: #1B2023;
+      --surface-alt: #22282C;
+      --ink: #EDF1EE;
+      --ink-muted: #8E9E95;
+      --line: #2E3539;
+      --accent: #FF7A2E;
+      --accent-ink: #121517;
+      --blue: #6C9FE0;
+      --blue-tint: #1B2635;
+      --success: #52C98A;
+      --success-tint: #152E20;
+      --danger: #F2745A;
+      --danger-tint: #331C17;
+      --orange-soft: #2B2019;
+      --orange-ink: #F08C4A;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.4;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    -webkit-tap-highlight-color: transparent;
+  }
+  button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+
+  header.top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+  }
+  .brand strong { color: var(--ink); }
+  h1 { margin: 2px 0 0; font-family: var(--font-mono); font-size: 19px; font-weight: 600; }
+
+  main { padding: 12px 14px 84px; max-width: 680px; margin: 0 auto; }
+  section.view { display: none; }
+  section.view.active { display: block; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 11.5px;
+    color: var(--ink-muted);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .fieldhint { font-size: 11px; color: var(--ink-muted); margin-top: 4px; }
+  .fieldhint.bad { color: var(--danger); font-weight: 600; }
+  .fieldhint.ok { color: var(--success); font-weight: 600; }
+  
+  .field input[type="text"],
+  .field input[type="date"],
+  .field select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--ink);
+    -webkit-appearance: none;
+  }
+
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button {
+    flex: 1;
+    border: none;
+    background: var(--surface);
+    color: var(--ink);
+    padding: 10px 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    border-right: 1px solid var(--line);
+  }
+  .seg button:last-child { border-right: none; }
+  .seg button.selected.ok { background: var(--success-tint); color: var(--success); }
+  .seg button.selected.bad { background: var(--danger-tint); color: var(--danger); }
+  .seg button.selected.orange { background: var(--orange-soft); color: var(--orange-ink); }
+  .seg button.selected.sfrblue { background: var(--blue-tint); color: var(--blue); }
+  .seg button.selected.neutral { background: var(--surface-alt); color: var(--ink); }
+
+  .preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--surface-alt);
+    margin: 12px 0;
+  }
+  .preview .label { font-size: 12px; color: var(--ink-muted); }
+  .preview .amount { font-family: var(--font-mono); font-size: 18px; font-weight: 700; }
+
+  .btn-primary {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .btn-primary:active { opacity: 0.85; }
+  .btn-ghost {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink-muted);
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .daytotal { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .daytotal .num { font-family: var(--font-mono); font-size: 22px; font-weight: 700; }
+  .daytotal .sub { font-size: 11.5px; color: var(--ink-muted); }
+
+  /* Carte Accordéon Compacte */
+  .entry {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 12px;
+    overflow: hidden;
+  }
+  .entry-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    cursor: pointer;
+    user-select: none;
+    gap: 8px;
+  }
+  .entry-header:active { background: var(--surface-alt); }
+  .entry-title { display: flex; align-items: center; gap: 8px; overflow: hidden; white-space: nowrap; }
+  .entry-num { font-family: var(--font-mono); font-weight: 700; font-size: 13px; color: var(--ink); }
+  .entry-typo-badge { font-size: 11px; color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; }
+  .entry-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .entry-amount { font-family: var(--font-mono); font-weight: 700; font-size: 13px; }
+  .entry-chevron { font-size: 10px; color: var(--ink-muted); transition: transform 0.2s ease; }
+  .entry.open .entry-chevron { transform: rotate(180deg); }
+
+  .entry-details {
+    display: none;
+    padding: 10px 12px;
+    border-top: 1px dashed var(--line);
+    background: var(--surface-alt);
+    font-size: 11.5px;
+  }
+  .entry.open .entry-details { display: block; }
+  
+  .entry-addr { color: var(--ink); margin-bottom: 6px; word-break: break-word; }
+  .entry-comment {
+    font-style: italic;
+    color: var(--ink-muted);
+    margin-bottom: 8px;
+    padding: 4px 8px;
+    background: var(--surface);
+    border-radius: 4px;
+    border: 1px solid var(--line);
+  }
+
+  .entry-footer { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .entry-tags { display: flex; gap: 4px; align-items: center; }
+  .tag { font-size: 9.5px; font-weight: 600; padding: 2px 5px; border-radius: 4px; text-transform: uppercase; }
+  .tag.ok { background: var(--success-tint); color: var(--success); }
+  .tag.bad { background: var(--danger-tint); color: var(--danger); }
+  .tag.neutral { background: var(--bg); color: var(--ink-muted); }
+
+  .btn-gps {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 3px 7px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .entry-del {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 6px;
+    font-weight: 600;
+  }
+
+  .empty { text-align: center; padding: 20px 10px; color: var(--ink-muted); font-size: 12.5px; }
+
+  .monthnav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .monthnav button {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    width: 32px; height: 32px;
+    font-size: 14px; cursor: pointer;
+  }
+  .monthnav .label { font-family: var(--font-mono); font-weight: 600; font-size: 13.5px; text-transform: capitalize; }
+
+  .summary-bar {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .summary-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  .summary-top .lbl { font-size: 11px; font-weight: 700; color: var(--ink-muted); }
+  .summary-top .val { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--success); }
+
+  .summary-sub {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+  }
+  .op-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+  }
+  .op-badge.orange { background: var(--orange-soft); color: var(--orange-ink); }
+  .op-badge.sfr { background: var(--blue-tint); color: var(--blue); }
+  .summary-details { font-size: 11px; color: var(--ink-muted); text-align: right; }
+
+  .daygroup {
+    margin-bottom: 12px;
+    background: var(--surface-alt);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 8px;
+  }
+  .daygroup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 2px 4px;
+  }
+  .daygroup-header h3 { font-family: var(--font-mono); font-size: 12px; font-weight: 700; margin: 0; }
+  .daygroup-total { font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; color: var(--ink-muted); }
+
+  .day-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  @media (max-width: 520px) { .day-cols { grid-template-columns: 1fr; } }
+
+  .col-op { background: var(--surface); border-radius: 6px; padding: 6px; border: 1px solid var(--line); }
+  .col-op-header {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 3px 6px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .col-op-header.orange { background: var(--orange-soft); color: var(--orange-ink); }
+  .col-op-header.sfr { background: var(--blue-tint); color: var(--blue); }
+  .col-empty { font-size: 10.5px; color: var(--ink-muted); text-align: center; padding: 8px 4px; font-style: italic; }
+
+  table.tariffs { width: 100%; border-collapse: collapse; }
+  table.tariffs th, table.tariffs td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+  table.tariffs th { color: var(--ink-muted); font-weight: 500; font-size: 11px; }
+  table.tariffs input {
+    width: 70px; padding: 6px; border: 1px solid var(--line);
+    border-radius: 6px; background: var(--surface-alt);
+    text-align: right; font-family: var(--font-mono);
+  }
+
+  nav.tabbar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    display: flex;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 10;
+  }
+  .tabbar button {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 8px 4px 6px;
+    background: none; border: none; color: var(--ink-muted);
+    cursor: pointer; font-size: 10.5px; font-weight: 500;
+  }
+  .tabbar button.active { color: var(--accent); }
+  .tabbar svg { width: 19px; height: 19px; }
+
+  .toast {
+    position: fixed;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--bg);
+    padding: 8px 14px; border-radius: 999px;
+    font-size: 12px; font-weight: 500;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 20; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">SUIVI · <strong>RACCORDEMENTS</strong></div>
+  <h1 id="headerTitle">Nouvelle intervention</h1>
+</header>
+
+<main>
+
+  <!-- ===== VUE SAISIE ===== -->
+  <section class="view active" id="view-saisie">
+    <div class="card">
+      <div class="field">
+        <label for="f-date">Date</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="field">
+        <label>Opérateur</label>
+        <div class="seg" id="f-op">
+          <button data-val="Orange" class="orange">Orange</button>
+          <button data-val="SFR" class="sfrblue">SFR</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-num">N° intervention</label>
+        <input type="text" id="f-num" placeholder="Ex: INT-0001">
+        <div class="fieldhint" id="f-num-hint">Sélectionne l'opérateur.</div>
+      </div>
+      <div class="field">
+        <label for="f-typo">Typologie raccordement</label>
+        <select id="f-typo">
+          <option value="">-- Sélectionner une typologie --</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-addr">Adresse client</label>
+        <input type="text" id="f-addr" placeholder="12 rue de la Paix, Perpignan">
+      </div>
+      <div class="field">
+        <label>Résultat</label>
+        <div class="seg" id="f-statut">
+          <button data-val="Réussite" class="ok">Réussite</button>
+          <button data-val="Échec" class="bad">Échec</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Solo / Binôme</label>
+        <div class="seg" id="f-solo">
+          <button data-val="Solo" class="neutral">Solo</button>
+          <button data-val="Binôme" class="neutral">Binôme</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-comment">Commentaire (Colonne J)</label>
+        <input type="text" id="f-comment" placeholder="Remarques, détails intervention...">
+      </div>
+
+      <div class="preview">
+        <span class="label">Montant calculé</span>
+        <span class="amount" id="f-preview">— €</span>
+      </div>
+
+      <button class="btn-primary" id="f-save">Enregistrer l'intervention</button>
+    </div>
+
+    <div class="daytotal">
+      <div>
+        <div class="num" id="todayTotal">0,00 €</div>
+        <div class="sub" id="todayCount">0 intervention aujourd'hui</div>
+      </div>
+      <button class="btn-ghost" id="clearForm">Effacer</button>
+    </div>
+
+    <div id="todayList"></div>
+  </section>
+
+  <!-- ===== VUE HISTORIQUE ===== -->
+  <section class="view" id="view-historique">
+    <div class="monthnav">
+      <button id="prevMonth">‹</button>
+      <div class="label" id="monthLabel">—</div>
+      <button id="nextMonth">›</button>
+    </div>
+
+    <div class="summary-bar">
+      <div class="summary-top">
+        <span class="lbl">TOTAL MOIS GLOBAL</span>
+        <span class="val" id="totalGlobal">0,00 €</span>
+      </div>
+      <div class="summary-sub">
+        <div style="display:flex; gap:6px;">
+          <span class="op-badge orange">Orange: <strong id="totalOrange">0 €</strong></span>
+          <span class="op-badge sfr">SFR: <strong id="totalSFR">0 €</strong></span>
+        </div>
+        <div class="summary-details">
+          Solo: <strong id="totalSolo">0 €</strong> · Binôme: <strong id="totalBinome">0 €</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:10px;">
+      <input type="text" id="histSearch" placeholder="🔍 Filtrer rue, n° int, commentaire...">
+    </div>
+
+    <button class="btn-primary" id="exportXlsx" style="margin-bottom:12px; padding:10px; font-size:13px;">Exporter ce mois en Excel</button>
+
+    <div id="monthList"></div>
+  </section>
+
+  <!-- ===== VUE TARIFS ===== -->
+  <section class="view" id="view-tarifs">
+    <div class="card">
+      <table class="tariffs">
+        <thead>
+          <tr><th>Typologie</th><th>Orange</th><th>SFR</th></tr>
+        </thead>
+        <tbody id="tariffRows"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <button class="btn-ghost" id="wipeAll" style="color:var(--danger); border-color:var(--danger); width:100%; padding:10px;">Réinitialiser la mémoire locale</button>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <button data-view="saisie" class="active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+    Saisie
+  </button>
+  <button data-view="historique">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+    Historique
+  </button>
+  <button data-view="tarifs">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    Tarifs
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUZ8Va_VV_J15W6gH26Xxq_MimoGbLfU_6cUUfxHhiRMqOMnBghSyWpkAx90zRtk1q/exec";
+
+  var TYPOS = ["Aérien","Souterrain","Immeuble","PLP","SAV","PLP sans client"];
+  var STORE_KEY = "raccordements_entries_v2";
+  var TARIFF_KEY = "raccordements_tarifs_v2";
+  var DEFAULT_TARIFFS = {
+    "Aérien": {Orange:160.00, SFR:null},
+    "Souterrain": {Orange:112.00, SFR:null},
+    "Immeuble": {Orange:54.40, SFR:null},
+    "PLP": {Orange:36.00, SFR:null},
+    "SAV": {Orange:36.00, SFR:null},
+    "PLP sans client": {Orange:12.00, SFR:null}
+  };
+
+  function safeGet(key, fallback){
+    try {
+      var raw = localStorage.getItem(key);
+      return raw === null ? fallback : JSON.parse(raw);
+    } catch(e){ return fallback; }
+  }
+  function safeSet(key, val){
+    try { localStorage.setItem(key, JSON.stringify(val)); return true; }
+    catch(e){ return false; }
+  }
+
+  var entries = safeGet(STORE_KEY, []);
+  var tariffs = safeGet(TARIFF_KEY, DEFAULT_TARIFFS);
+  TYPOS.forEach(function(t){ if(!tariffs[t]) tariffs[t] = {Orange:0, SFR:null}; });
+
+  var form = { typo: "", statut: null, op: null, solo: null };
+  var viewedMonth = new Date();
+
+  function fmtEuro(n){
+    if (n === null || n === undefined || isNaN(n)) n = 0;
+    return n.toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + " €";
+  }
+  function todayISO(){
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
+  }
+  function fmtDateFR(iso){
+    if (!iso) return "";
+    var p = iso.split("-");
+    return p[2] + "/" + p[1] + "/" + p[0];
+  }
+  function toast(msg){
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(function(){ el.classList.remove('show'); }, 2200);
+  }
+
+  function loadEntries(){
+    renderToday();
+    renderHistorique();
+
+    if (!SCRIPT_URL) return;
+    toast("Synchronisation...");
+    fetch(SCRIPT_URL)
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (Array.isArray(data) && data.length > 0){
+          var map = {};
+          entries.forEach(function(e){ map[e.id] = e; });
+          data.forEach(function(e){ map[e.id] = e; });
+          entries = Object.values(map);
+
+          safeSet(STORE_KEY, entries);
+          renderToday();
+          renderHistorique();
+          toast("À jour");
+        }
+      })
+      .catch(function(){ toast("Mode local (hors-ligne)"); });
+  }
+
+  var titles = { saisie: "Nouvelle intervention", historique: "Historique", tarifs: "Tarifs" };
+  document.querySelectorAll('.tabbar button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.tabbar button').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var v = btn.getAttribute('data-view');
+      document.querySelectorAll('.view').forEach(function(s){ s.classList.remove('active'); });
+      document.getElementById('view-' + v).classList.add('active');
+      document.getElementById('headerTitle').textContent = titles[v];
+      if (v === 'historique') renderHistorique();
+      if (v === 'tarifs') renderTarifs();
+    });
+  });
+
+  // Remplissage du Select Typologie
+  var typoSelect = document.getElementById('f-typo');
+  TYPOS.forEach(function(t){
+    var opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    typoSelect.appendChild(opt);
+  });
+  typoSelect.addEventListener('change', function(){
+    form.typo = typoSelect.value;
+    updatePreview();
+  });
+
+  var NUM_LENGTH = { "Orange": 10, "SFR": 9 };
+
+  function updateNumHint(){
+    var hint = document.getElementById('f-num-hint');
+    var num = document.getElementById('f-num').value.trim();
+    if (!form.op){
+      hint.textContent = "Sélectionne l'opérateur.";
+      hint.className = "fieldhint";
+      return;
+    }
+    var expected = NUM_LENGTH[form.op];
+    if (num.length === 0){
+      hint.textContent = expected + " caractères attendus pour " + form.op;
+      hint.className = "fieldhint";
+    } else if (num.length === expected){
+      hint.textContent = expected + " caractères ✓";
+      hint.className = "fieldhint ok";
+    } else {
+      hint.textContent = num.length + "/" + expected + " caractères (" + form.op + ")";
+      hint.className = "fieldhint bad";
+    }
+  }
+  document.getElementById('f-num').addEventListener('input', updateNumHint);
+
+  function wireSeg(id, key){
+    var wrap = document.getElementById(id);
+    wrap.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', function(){
+        form[key] = b.dataset.val;
+        wrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
+        b.classList.add('selected');
+        updatePreview();
+        if (key === 'op') updateNumHint();
+      });
+    });
+  }
+  wireSeg('f-statut', 'statut');
+  wireSeg('f-op', 'op');
+  wireSeg('f-solo', 'solo');
+
+  function computeMontant(typo, statut, op){
+    if (!typo || !statut || !op) return null;
+    if (statut === "Échec") return 0;
+    var row = tariffs[typo];
+    if (!row) return 0;
+    var v = row[op];
+    return (v === null || v === undefined) ? 0 : v;
+  }
+
+  function updatePreview(){
+    var m = computeMontant(form.typo, form.statut, form.op);
+    document.getElementById('f-preview').textContent = (m === null) ? "— €" : fmtEuro(m);
+  }
+
+  document.getElementById('f-date').value = todayISO();
+
+  function resetForm(){
+    form = { typo: "", statut: null, op: null, solo: null };
+    document.getElementById('f-date').value = todayISO();
+    document.getElementById('f-num').value = "";
+    document.getElementById('f-addr').value = "";
+    document.getElementById('f-comment').value = "";
+    typoSelect.value = "";
+    document.querySelectorAll('#f-statut button, #f-op button, #f-solo button')
+      .forEach(function(b){ b.classList.remove('selected'); });
+    updateNumHint();
+    updatePreview();
+  }
+  document.getElementById('clearForm').addEventListener('click', resetForm);
+
+  document.getElementById('f-save').addEventListener('click', function(){
+    var date = document.getElementById('f-date').value;
+    var num = document.getElementById('f-num').value.trim();
+    var addr = document.getElementById('f-addr').value.trim();
+    var comment = document.getElementById('f-comment').value.trim();
+
+    if (!date || !num || !form.typo || !form.statut || !form.op || !form.solo){
+      toast("Remplis tous les champs requis");
+      return;
+    }
+    var expectedLen = NUM_LENGTH[form.op];
+    if (num.length !== expectedLen){
+      toast("N° intervention invalide (" + expectedLen + " caract.)");
+      return;
+    }
+
+    var montant = computeMontant(form.typo, form.statut, form.op);
+    var entry = {
+      id: Date.now() + "-" + Math.random().toString(36).slice(2,7),
+      date: date, num: num, addr: addr,
+      typo: form.typo, statut: form.statut, op: form.op, solo: form.solo,
+      montant: montant, comment: comment
+    };
+
+    // 1. Sauvegarde locale immédiate
+    entries.push(entry);
+    safeSet(STORE_KEY, entries);
+    renderToday();
+    resetForm();
+    toast("Enregistré en local");
+
+    // 2. Envoi serveur en arrière-plan
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(entry)
+    }).then(function(){
+      toast("Synchronisé sur Sheets");
+    }).catch(function(){
+      toast("Sauvegardé (hors-ligne)");
+    });
+  });
+
+  function deleteEntry(id){
+    if(!confirm("Supprimer cette intervention ?")) return;
+    
+    entries = entries.filter(function(e){ return e.id !== id; });
+    safeSet(STORE_KEY, entries);
+    renderToday();
+    renderHistorique();
+    toast("Supprimé en local");
+
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: "delete", id: id })
+    });
+  }
+
+  // Carte Accordéon Réduite à 1 Ligne
+  function entryCard(e){
+    var div = document.createElement('div');
+    div.className = 'entry';
+    var statutClass = e.statut === "Réussite" ? "ok" : "bad";
+    
+    var addrHtml = e.addr ? '<div class="entry-addr">📍 ' + escapeHtml(e.addr) + '</div>' : '<div class="entry-addr"><em>Aucune adresse saisie</em></div>';
+    var gpsBtnHtml = e.addr ? '<a class="btn-gps" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(e.addr) + '" target="_blank">🗺️ Ouvrir Maps</a>' : '';
+    var commentHtml = e.comment ? '<div class="entry-comment">💬 ' + escapeHtml(e.comment) + '</div>' : '';
+
+    div.innerHTML =
+      '<div class="entry-header">' +
+        '<div class="entry-title">' +
+          '<span class="entry-num">' + escapeHtml(e.num) + '</span>' +
+          '<span class="entry-typo-badge">· ' + escapeHtml(e.typo) + '</span>' +
+        '</div>' +
+        '<div class="entry-right">' +
+          '<span class="entry-amount">' + fmtEuro(e.montant) + '</span>' +
+          '<span class="entry-chevron">▼</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="entry-details">' +
+        addrHtml +
+        commentHtml +
+        '<div class="entry-footer">' +
+          '<div class="entry-tags">' +
+            '<span class="tag ' + statutClass + '">' + e.statut + '</span>' +
+            '<span class="tag neutral">' + e.solo + '</span>' +
+          '</div>' +
+          '<div style="display:flex; align-items:center; gap:8px;">' +
+            gpsBtnHtml +
+            '<button class="entry-del" data-id="' + e.id + '">Supprimer</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    // Toggle accordéon au clic sur le header
+    div.querySelector('.entry-header').addEventListener('click', function(){
+      div.classList.toggle('open');
+    });
+
+    div.querySelector('.entry-del').addEventListener('click', function(ev){
+      ev.stopPropagation();
+      deleteEntry(e.id);
+    });
+
+    return div;
+  }
+
+  function escapeHtml(s){
+    return String(s || '').replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function renderToday(){
+    var today = todayISO();
+    var todays = entries.filter(function(e){ return e.date === today; });
+    var total = todays.reduce(function(s,e){ return s + (e.montant||0); }, 0);
+    document.getElementById('todayTotal').textContent = fmtEuro(total);
+    document.getElementById('todayCount').textContent = todays.length + (todays.length > 1 ? " interventions" : " intervention");
+    var list = document.getElementById('todayList');
+    list.innerHTML = "";
+    if (todays.length === 0){
+      var e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = "Aucune intervention aujourd'hui.";
+      list.appendChild(e);
+      return;
+    }
+    todays.slice().reverse().forEach(function(en){ list.appendChild(entryCard(en)); });
+  }
+
+  var MOIS_FR = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+
+  document.getElementById('prevMonth').addEventListener('click', function(){
+    viewedMonth.setMonth(viewedMonth.getMonth() - 1);
+    renderHistorique();
+  });
+  document.getElementById('nextMonth').addEventListener('click', function(){
+    viewedMonth.setMonth(viewedMonth.getMonth() + 1);
+    renderHistorique();
+  });
+
+  var searchInput = document.getElementById('histSearch');
+  searchInput.addEventListener('input', function(){ renderHistorique(); });
+
+  var currentMonthEntries = [];
+  var currentMonthLabel = "";
+
+  function renderHistorique(){
+    var y = viewedMonth.getFullYear(), m = viewedMonth.getMonth();
+    document.getElementById('monthLabel').textContent = MOIS_FR[m] + " " + y;
+    currentMonthLabel = MOIS_FR[m] + "_" + y;
+
+    var monthEntries = entries.filter(function(e){
+      var d = new Date(e.date + "T00:00:00");
+      return d.getFullYear() === y && d.getMonth() === m;
+    });
+
+    var q = searchInput.value.trim().toLowerCase();
+    var filteredEntries = monthEntries.filter(function(e){
+      if (!q) return true;
+      var str = (e.num + " " + (e.addr||"") + " " + (e.comment||"") + " " + e.typo + " " + e.op + " " + e.statut + " " + e.solo).toLowerCase();
+      return str.indexOf(q) !== -1;
+    });
+
+    currentMonthEntries = monthEntries.slice().sort(function(a,b){ return a.date < b.date ? -1 : (a.date > b.date ? 1 : 0); });
+
+    var totGlobal = monthEntries.reduce(function(s,e){ return s + (e.montant||0); }, 0);
+    var totOrange = monthEntries.filter(function(e){ return e.op === "Orange"; }).reduce(function(s,e){ return s+(e.montant||0); }, 0);
+    var totSFR = monthEntries.filter(function(e){ return e.op === "SFR"; }).reduce(function(s,e){ return s+(e.montant||0); }, 0);
+    var totBinome = monthEntries.filter(function(e){ return e.solo === "Binôme"; }).reduce(function(s,e){ return s+(e.montant||0); }, 0);
+    var totSolo = monthEntries.filter(function(e){ return e.solo === "Solo"; }).reduce(function(s,e){ return s+(e.montant||0); }, 0);
+
+    document.getElementById('totalGlobal').textContent = fmtEuro(totGlobal);
+    document.getElementById('totalOrange').textContent = fmtEuro(totOrange);
+    document.getElementById('totalSFR').textContent = fmtEuro(totSFR);
+    document.getElementById('totalBinome').textContent = fmtEuro(totBinome);
+    document.getElementById('totalSolo').textContent = fmtEuro(totSolo);
+
+    var list = document.getElementById('monthList');
+    list.innerHTML = "";
+
+    if (filteredEntries.length === 0){
+      var e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = q ? "Aucun résultat pour cette recherche." : "Aucune intervention ce mois-ci.";
+      list.appendChild(e);
+      return;
+    }
+
+    var byDay = {};
+    filteredEntries.forEach(function(en){
+      if (!byDay[en.date]) byDay[en.date] = [];
+      byDay[en.date].push(en);
+    });
+
+    Object.keys(byDay).sort().reverse().forEach(function(date){
+      var dayItems = byDay[date];
+      var dayTot = dayItems.reduce(function(s,e){ return s + (e.montant||0); }, 0);
+
+      var group = document.createElement('div');
+      group.className = 'daygroup';
+
+      var header = document.createElement('div');
+      header.className = 'daygroup-header';
+      header.innerHTML = '<h3>' + fmtDateFR(date) + '</h3><span class="daygroup-total">Jour : ' + fmtEuro(dayTot) + '</span>';
+      group.appendChild(header);
+
+      var cols = document.createElement('div');
+      cols.className = 'day-cols';
+
+      var colOrange = document.createElement('div');
+      colOrange.className = 'col-op';
+      var orangeEntries = dayItems.filter(function(e){ return e.op === "Orange"; });
+      var orangeTot = orangeEntries.reduce(function(s,e){ return s + (e.montant||0); }, 0);
+      colOrange.innerHTML = '<div class="col-op-header orange"><span>Orange</span><span>' + fmtEuro(orangeTot) + '</span></div>';
+
+      if (orangeEntries.length === 0) {
+        var emp = document.createElement('div');
+        emp.className = 'col-empty'; emp.textContent = "Aucune";
+        colOrange.appendChild(emp);
+      } else {
+        orangeEntries.forEach(function(en){ colOrange.appendChild(entryCard(en)); });
+      }
+
+      var colSFR = document.createElement('div');
+      colSFR.className = 'col-op';
+      var sfrEntries = dayItems.filter(function(e){ return e.op === "SFR"; });
+      var sfrTot = sfrEntries.reduce(function(s,e){ return s + (e.montant||0); }, 0);
+      colSFR.innerHTML = '<div class="col-op-header sfr"><span>SFR</span><span>' + fmtEuro(sfrTot) + '</span></div>';
+
+      if (sfrEntries.length === 0) {
+        var emp = document.createElement('div');
+        emp.className = 'col-empty'; emp.textContent = "Aucune";
+        colSFR.appendChild(emp);
+      } else {
+        sfrEntries.forEach(function(en){ colSFR.appendChild(entryCard(en)); });
+      }
+
+      cols.appendChild(colOrange);
+      cols.appendChild(colSFR);
+      group.appendChild(cols);
+
+      list.appendChild(group);
+    });
+  }
+
+  function renderTarifs(){
+    var body = document.getElementById('tariffRows');
+    body.innerHTML = "";
+    TYPOS.forEach(function(t){
+      var tr = document.createElement('tr');
+      var row = tariffs[t];
+      tr.innerHTML =
+        '<td>' + t + '</td>' +
+        '<td><input type="text" inputmode="decimal" data-typo="' + t + '" data-op="Orange" value="' + (row.Orange ?? '') + '"></td>' +
+        '<td><input type="text" inputmode="decimal" data-typo="' + t + '" data-op="SFR" value="' + (row.SFR ?? '') + '"></td>';
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('input').forEach(function(inp){
+      inp.addEventListener('change', function(){
+        var v = parseFloat(inp.value.replace(',', '.'));
+        var t = inp.dataset.typo, op = inp.dataset.op;
+        tariffs[t][op] = isNaN(v) ? null : v;
+        safeSet(TARIFF_KEY, tariffs);
+        toast("Tarif mis à jour");
+        entries.forEach(function(e){
+          if (e.statut === "Réussite" && e.typo === t && e.op === op){
+            e.montant = tariffs[t][op] || 0;
+          }
+        });
+        safeSet(STORE_KEY, entries);
+      });
+    });
+  }
+
+  document.getElementById('wipeAll').addEventListener('click', function(){
+    if (confirm("Vider la mémoire locale de l'appareil ?")){
+      entries = [];
+      safeSet(STORE_KEY, entries);
+      renderToday();
+      renderHistorique();
+      toast("Mémoire réinitialisée");
+    }
+  });
+
+  document.getElementById('exportXlsx').addEventListener('click', function(){
+    if (typeof XLSX === "undefined"){ toast("Module Excel indisponible"); return; }
+    if (currentMonthEntries.length === 0){ toast("Rien à exporter"); return; }
+
+    var rows = currentMonthEntries.map(function(e){
+      return {
+        "Date": fmtDateFR(e.date),
+        "N° intervention": e.num,
+        "Adresse client": e.addr || "",
+        "Typologie raccordement": e.typo,
+        "Réussite / Échec": e.statut,
+        "Opérateur": e.op,
+        "Solo / Binôme": e.solo,
+        "Montant (€)": e.montant || 0,
+        "Commentaire": e.comment || ""
+      };
+    });
+
+    var ws = XLSX.utils.json_to_sheet(rows);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Récap");
+    XLSX.writeFile(wb, "raccordements_" + currentMonthLabel + ".xlsx");
+    toast("Fichier Excel téléchargé");
+  });
+
+  updatePreview();
+  updateNumHint();
+  loadEntries();
+})();
+</script>
+</body>
+</html>
