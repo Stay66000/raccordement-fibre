@@ -674,16 +674,15 @@
     return new Date(dateStr);
   }
 
- function loadEntries(){
+  function loadEntries(){
     renderToday();
     renderHistorique();
 
     if (!SCRIPT_URL) return;
     toast("Synchro (" + currentViewTech + ")...");
     
-    // Ajout d'un paramètre temporel &_t pour interdire le cache Safari/iOS
-    var url = SCRIPT_URL + "?tech=" + encodeURIComponent(currentViewTech) + "&_t=" + Date.now();
-    fetch(url, { cache: "no-store" })
+    var url = SCRIPT_URL + "?tech=" + encodeURIComponent(currentViewTech);
+    fetch(url)
       .then(function(r){ return r.json(); })
       .then(function(data){
         if (Array.isArray(data)){
@@ -700,11 +699,10 @@
       .catch(function(){ toast("Mode local (hors-ligne)"); });
   }
 
-function loadFuel(){
+  function loadFuel(){
     renderCarburant();
     if (!SCRIPT_URL) return;
-    var url = SCRIPT_URL + "?type=fuel&_t=" + Date.now();
-    fetch(url, { cache: "no-store" })
+    fetch(SCRIPT_URL + "?type=fuel")
       .then(function(r){ return r.json(); })
       .then(function(data){
         if (Array.isArray(data)){
@@ -1234,26 +1232,7 @@ function loadFuel(){
   document.addEventListener("DOMContentLoaded", function(){
     loadEntries();
   });
-// Auto-synchronisation dès que l'écran/onglet redevient actif
-  document.addEventListener("visibilitychange", function() {
-    if (document.visibilityState === "visible") {
-      loadEntries();
-      if (document.getElementById('view-carburant').classList.contains('active')) {
-        loadFuel();
-      }
-    }
-  });
 
-  window.addEventListener("focus", function() {
-    loadEntries();
-  });
-
-  // Clic sur le titre de l'en-tête pour forcer un rafraîchissement manuel
-  document.querySelector('header.top').style.cursor = 'pointer';
-  document.querySelector('header.top').addEventListener('click', function(){
-    loadEntries();
-    loadFuel();
-  });
 })();
 </script>
 </body>
