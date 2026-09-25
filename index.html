@@ -3,65 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Raccordements</title>
+<title>SpeedConnect - Raccordements</title>
+<link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
-    --bg: #F4F5F1;
-    --surface: #FFFFFF;
-    --surface-alt: #EBF0EA;
-    --ink: #131A16;
-    --ink-muted: #627067;
-    --line: #DCE2D7;
-    --accent: #FF6A18;
-    --accent-ink: #FFFFFF;
-    --blue: #1B4B91;
-    --blue-tint: #EEF3FA;
-    --success: #1E7A4C;
-    --success-tint: #E8F5ED;
-    --danger: #B8391F;
-    --danger-tint: #FBECE8;
-    --orange-soft: #FAF0E8;
-    --orange-ink: #A64B14;
-    --radius: 10px;
-    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
-    --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #121517;
-      --surface: #1B2023;
-      --surface-alt: #22282C;
-      --ink: #EDF1EE;
-      --ink-muted: #8E9E95;
-      --line: #2E3539;
-      --accent: #FF7A2E;
-      --accent-ink: #121517;
-      --blue: #6C9FE0;
-      --blue-tint: #1B2635;
-      --success: #52C98A;
-      --success-tint: #152E20;
-      --danger: #F2745A;
-      --danger-tint: #331C17;
-      --orange-soft: #2B2019;
-      --orange-ink: #F08C4A;
-    }
+    --bg: #0F172A;
+    --surface: #1E293B;
+    --surface-alt: #111827;
+    --border: #334155;
+    --ink: #F8FAFC;
+    --ink-muted: #94A3B8;
+    --accent: #00C2FF;
+    --accent-hover: #38BDF8;
+    --success: #22C55E;
+    --success-bg: rgba(34, 197, 94, 0.15);
+    --danger: #EF4444;
+    --danger-bg: rgba(239, 68, 68, 0.15);
+    --orange: #F97316;
+    --sfr: #3B82F6;
+    --radius: 8px;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'IBM Plex Sans', sans-serif;
   }
 
-  * { box-sizing: border-box; }
-  html, body { height: 100%; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    margin: 0;
     background: var(--bg);
     color: var(--ink);
     font-family: var(--font-sans);
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.4;
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: 70px;
     -webkit-tap-highlight-color: transparent;
   }
   button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
@@ -69,323 +45,272 @@
   header.top {
     position: sticky;
     top: 0;
-    z-index: 10;
-    padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
-    background: var(--bg);
-    border-bottom: 1px solid var(--line);
+    z-index: 20;
+    background: var(--surface-alt);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
   .brand {
     font-family: var(--font-mono);
-    font-weight: 600;
-    font-size: 11px;
-    letter-spacing: 0.05em;
-    color: var(--ink-muted);
-    text-transform: uppercase;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-  .brand strong { color: var(--ink); }
-  h1 { margin: 2px 0 0; font-family: var(--font-mono); font-size: 19px; font-weight: 600; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
 
-  main { padding: 12px 14px 84px; max-width: 680px; margin: 0 auto; }
+  main { padding: 12px; max-width: 900px; margin: 0 auto; }
   section.view { display: none; }
   section.view.active { display: block; }
 
   .card {
     background: var(--surface);
-    border: 1px solid var(--line);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 14px;
     margin-bottom: 12px;
   }
 
   .field { margin-bottom: 12px; }
-  .field:last-child { margin-bottom: 0; }
   .field label {
     display: block;
-    font-size: 11.5px;
-    color: var(--ink-muted);
+    font-size: 11px;
+    color: var(--accent);
     margin-bottom: 4px;
-    font-weight: 500;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
-  .fieldhint { font-size: 11px; color: var(--ink-muted); margin-top: 4px; }
-  .fieldhint.bad { color: var(--danger); font-weight: 600; }
-  .fieldhint.ok { color: var(--success); font-weight: 600; }
-  
   .field input[type="text"],
   .field input[type="number"],
   .field input[type="date"],
-  .field select {
+  .field select,
+  .field textarea {
     width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: var(--surface);
+    padding: 9px 12px;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    background: var(--surface-alt);
     color: var(--ink);
-    -webkit-appearance: none;
+    outline: none;
+  }
+  .field input:focus, .field select:focus {
+    box-shadow: 0 0 0 2px rgba(0, 194, 255, 0.3);
   }
 
-  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .fieldhint { font-size: 11px; color: var(--ink-muted); margin-top: 4px; }
+  .fieldhint.bad { color: var(--danger); }
+  .fieldhint.ok { color: var(--success); }
+
+  .seg { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
   .seg button {
     flex: 1;
     border: none;
-    background: var(--surface);
-    color: var(--ink);
+    background: var(--surface-alt);
+    color: var(--ink-muted);
     padding: 10px 6px;
     cursor: pointer;
     font-weight: 600;
-    font-size: 13px;
-    border-right: 1px solid var(--line);
+    font-size: 12px;
+    border-right: 1px solid var(--border);
   }
   .seg button:last-child { border-right: none; }
-  .seg button.selected { background: var(--surface-alt); color: var(--ink); border-bottom: 2px solid var(--accent); }
-  .seg button.selected.ok { background: var(--success-tint); color: var(--success); }
-  .seg button.selected.bad { background: var(--danger-tint); color: var(--danger); }
-  .seg button.selected.orange { background: var(--orange-soft); color: var(--orange-ink); }
-  .seg button.selected.sfrblue { background: var(--blue-tint); color: var(--blue); }
-  .seg button.selected.neutral { background: var(--surface-alt); color: var(--ink); }
+  .seg button.selected {
+    background: var(--surface);
+    color: #FFF;
+    border-bottom: 2px solid var(--accent);
+  }
+  .seg button.selected.ok { background: var(--success-bg); color: var(--success); border-bottom-color: var(--success); }
+  .seg button.selected.bad { background: var(--danger-bg); color: var(--danger); border-bottom-color: var(--danger); }
 
   .preview {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 10px 12px;
-    border-radius: 8px;
+    border-radius: 6px;
     background: var(--surface-alt);
+    border: 1px solid var(--border);
     margin: 12px 0;
   }
-  .preview .label { font-size: 12px; color: var(--ink-muted); }
-  .preview .amount { font-family: var(--font-mono); font-size: 18px; font-weight: 700; }
+  .preview .amount { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--accent); }
 
   .btn-primary {
     width: 100%;
-    padding: 13px;
+    padding: 12px;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     background: var(--accent);
-    color: var(--accent-ink);
-    font-weight: 600;
+    color: var(--surface-alt);
+    font-weight: 700;
     font-size: 14px;
     cursor: pointer;
   }
   .btn-primary:active { opacity: 0.85; }
   .btn-ghost {
-    padding: 6px 10px;
+    padding: 6px 12px;
     border-radius: 6px;
-    border: 1px solid var(--line);
+    border: 1px solid var(--border);
     background: transparent;
     color: var(--ink-muted);
     font-size: 12px;
     cursor: pointer;
   }
 
-  .daytotal { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-  .daytotal .num { font-family: var(--font-mono); font-size: 22px; font-weight: 700; }
-  .daytotal .sub { font-size: 11.5px; color: var(--ink-muted); }
-
-  /* Carte Accordéon Compacte */
-  .entry {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    margin-bottom: 6px;
-    font-size: 12px;
-    overflow: hidden;
-  }
-  .entry-header {
+  /* speedconnect style table */
+  .filter-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 12px;
-    cursor: pointer;
-    user-select: none;
     gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
   }
-  .entry-header:active { background: var(--surface-alt); }
-  .entry-title { display: flex; align-items: center; gap: 8px; overflow: hidden; white-space: nowrap; }
-  .entry-num { font-family: var(--font-mono); font-weight: 700; font-size: 13px; color: var(--ink); }
-  .entry-typo-badge { font-size: 11px; color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; }
-  .entry-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-  .entry-amount { font-family: var(--font-mono); font-weight: 700; font-size: 13px; }
-  .entry-chevron { font-size: 10px; color: var(--ink-muted); transition: transform 0.2s ease; }
-  .entry.open .entry-chevron { transform: rotate(180deg); }
-
-  .entry-details {
-    display: none;
-    padding: 10px 12px;
-    border-top: 1px dashed var(--line);
+  .date-pill {
     background: var(--surface-alt);
-    font-size: 11.5px;
+    border: 1px solid var(--accent);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent);
   }
-  .entry.open .entry-details { display: block; }
-  
-  .entry-addr { color: var(--ink); margin-bottom: 6px; word-break: break-word; }
-  .entry-comment {
-    font-style: italic;
-    color: var(--ink-muted);
-    margin-bottom: 8px;
-    padding: 4px 8px;
-    background: var(--surface);
-    border-radius: 4px;
-    border: 1px solid var(--line);
+  .month-total-pill {
+    background: rgba(0, 194, 255, 0.1);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 13px;
   }
 
-  .entry-footer { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-  .entry-tags { display: flex; gap: 4px; align-items: center; }
-  .tag { font-size: 9.5px; font-weight: 600; padding: 2px 5px; border-radius: 4px; text-transform: uppercase; }
-  .tag.ok { background: var(--success-tint); color: var(--success); }
-  .tag.bad { background: var(--danger-tint); color: var(--danger); }
-  .tag.neutral { background: var(--bg); color: var(--ink-muted); }
-
-  .btn-gps {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
+  .table-container {
+    overflow-x: auto;
     background: var(--surface);
-    border: 1px solid var(--line);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  table.speed-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    text-align: left;
+    white-space: nowrap;
+  }
+  table.speed-table th {
+    background: var(--surface-alt);
+    color: var(--accent);
+    padding: 10px 8px;
+    border-bottom: 2px solid var(--border);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+  }
+  table.speed-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  table.speed-table tr:last-child td { border-bottom: none; }
+  table.speed-table tr:hover { background: rgba(255, 255, 255, 0.03); cursor: pointer; }
+
+  .num-link {
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    text-decoration: underline;
+  }
+  .badge-statut { font-size: 14px; }
+  .badge-typo {
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    padding: 2px 6px;
     border-radius: 4px;
-    padding: 3px 7px;
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 600;
     color: var(--ink);
-    text-decoration: none;
   }
-
-  .entry-del {
-    background: none;
-    border: none;
-    color: var(--danger);
-    font-size: 12px;
-    cursor: pointer;
+  .badge-op {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60A5FA;
     padding: 2px 6px;
-    font-weight: 600;
-  }
-
-  .empty { text-align: center; padding: 20px 10px; color: var(--ink-muted); font-size: 12.5px; }
-
-  .monthnav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-  .monthnav button {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    width: 32px; height: 32px;
-    font-size: 14px; cursor: pointer;
-  }
-  .monthnav .label { font-family: var(--font-mono); font-weight: 600; font-size: 13.5px; text-transform: capitalize; }
-
-  .summary-bar {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 10px 12px;
-    margin-bottom: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .summary-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--line);
-  }
-  .summary-top .lbl { font-size: 11px; font-weight: 700; color: var(--ink-muted); }
-  .summary-top .val { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--success); }
-
-  .summary-sub {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 6px;
-    font-size: 11.5px;
-  }
-  .op-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-family: var(--font-mono);
-    font-weight: 600;
-  }
-  .op-badge.orange { background: var(--orange-soft); color: var(--orange-ink); }
-  .op-badge.sfr { background: var(--blue-tint); color: var(--blue); }
-  .summary-details { font-size: 11px; color: var(--ink-muted); text-align: right; }
-
-  .daygroup {
-    margin-bottom: 12px;
-    background: var(--surface-alt);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 8px;
-  }
-  .daygroup-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-    padding: 2px 4px;
-  }
-  .daygroup-header h3 { font-family: var(--font-mono); font-size: 12px; font-weight: 700; margin: 0; }
-  .daygroup-total { font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; color: var(--ink-muted); }
-
-  .day-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  @media (max-width: 520px) { .day-cols { grid-template-columns: 1fr; } }
-
-  .col-op { background: var(--surface); border-radius: 6px; padding: 6px; border: 1px solid var(--line); }
-  .col-op-header {
-    font-family: var(--font-mono);
+    border-radius: 4px;
     font-size: 10px;
     font-weight: 700;
-    text-transform: uppercase;
-    padding: 3px 6px;
-    border-radius: 4px;
-    margin-bottom: 6px;
+  }
+  .tarif-val {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: #FFF;
+  }
+
+  /* MODAL DE DETAIL (SPEEDCONNECT STYLE) */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 12px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-card {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .modal-header {
     display: flex;
     justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
   }
-  .col-op-header.orange { background: var(--orange-soft); color: var(--orange-ink); }
-  .col-op-header.sfr { background: var(--blue-tint); color: var(--blue); }
-  .col-empty { font-size: 10.5px; color: var(--ink-muted); text-align: center; padding: 8px 4px; font-style: italic; }
+  .modal-title { font-family: var(--font-mono); font-size: 16px; font-weight: 700; color: var(--accent); }
 
-  table.tariffs { width: 100%; border-collapse: collapse; }
-  table.tariffs th, table.tariffs td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
-  table.tariffs th { color: var(--ink-muted); font-weight: 500; font-size: 11px; }
-  table.tariffs input {
-    width: 70px; padding: 6px; border: 1px solid var(--line);
-    border-radius: 6px; background: var(--surface-alt);
-    text-align: right; font-family: var(--font-mono);
-  }
-
+  /* TABBAR BOTTOM */
   nav.tabbar {
     position: fixed;
     bottom: 0; left: 0; right: 0;
     display: flex;
-    background: var(--surface);
-    border-top: 1px solid var(--line);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    z-index: 10;
+    background: var(--surface-alt);
+    border-top: 1px solid var(--border);
+    z-index: 20;
   }
   .tabbar button {
     flex: 1;
     display: flex; flex-direction: column; align-items: center; gap: 2px;
-    padding: 8px 4px 6px;
+    padding: 8px 4px;
     background: none; border: none; color: var(--ink-muted);
-    cursor: pointer; font-size: 10.5px; font-weight: 500;
+    cursor: pointer; font-size: 10px; font-weight: 600;
   }
   .tabbar button.active { color: var(--accent); }
-  .tabbar svg { width: 19px; height: 19px; }
+  .tabbar svg { width: 18px; height: 18px; }
 
   .toast {
     position: fixed;
-    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
-    left: 50%;
+    bottom: 60px; left: 50%;
     transform: translateX(-50%) translateY(20px);
-    background: var(--ink); color: var(--bg);
-    padding: 8px 14px; border-radius: 999px;
-    font-size: 12px; font-weight: 500;
+    background: var(--accent); color: var(--surface-alt);
+    padding: 8px 16px; border-radius: 20px;
+    font-size: 12px; font-weight: 700;
     opacity: 0; pointer-events: none;
-    transition: opacity 0.2s ease, transform 0.2s ease;
-    z-index: 20; white-space: nowrap;
+    transition: all 0.2s ease; z-index: 1000;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
@@ -393,13 +318,14 @@
 <body>
 
 <header class="top">
-  <div class="brand">SUIVI · <strong>RACCORDEMENTS</strong></div>
-  <h1 id="headerTitle">Nouvelle intervention</h1>
+  <div class="brand">⚡ SpeedConnect</div>
+  <div class="header-actions">
+    <button class="btn-ghost" id="reloadBtn">🔄 Synchro</button>
+  </div>
 </header>
 
 <main>
 
-  <!-- ===== VUE SAISIE INTERVENTION ===== -->
   <section class="view active" id="view-saisie">
     <div class="card">
       <div class="field">
@@ -409,13 +335,14 @@
       <div class="field">
         <label>Opérateur</label>
         <div class="seg" id="f-op">
-          <button data-val="Orange" class="orange">Orange</button>
-          <button data-val="SFR" class="sfrblue">SFR</button>
+          <button data-val="Orange">Orange</button>
+          <button data-val="SFR">SFR</button>
+          <button data-val="FREE">FREE</button>
         </div>
       </div>
       <div class="field">
-        <label for="f-num">N° intervention</label>
-        <input type="text" id="f-num" placeholder="Ex: INT-0001">
+        <label for="f-num">N° intervention / Réf</label>
+        <input type="text" id="f-num" placeholder="Ex: JETON15759005 ou INT-0001">
         <div class="fieldhint" id="f-num-hint">Sélectionne l'opérateur.</div>
       </div>
       <div class="field">
@@ -425,25 +352,29 @@
         </select>
       </div>
       <div class="field">
+        <label for="f-zone">Zone</label>
+        <input type="text" id="f-zone" value="66">
+      </div>
+      <div class="field">
         <label for="f-addr">Adresse client</label>
         <input type="text" id="f-addr" placeholder="12 rue de la Paix, Perpignan">
       </div>
       <div class="field">
         <label>Résultat</label>
         <div class="seg" id="f-statut">
-          <button data-val="Réussite" class="ok">Réussite</button>
-          <button data-val="Échec" class="bad">Échec</button>
+          <button data-val="Réussite" class="ok">👍 Succès</button>
+          <button data-val="Échec" class="bad">❌ Échec</button>
         </div>
       </div>
 
-      <!-- Mode Solo / Binôme + Menu Déroulant Solo -->
       <div class="field">
-        <label>Solo / Binôme</label>
+        <label>Mode de travail</label>
         <div class="seg" id="f-solo">
-          <button data-val="Solo" class="neutral">Solo</button>
-          <button data-val="Binôme" class="neutral">Binôme</button>
+          <button data-val="Solo">Solo</button>
+          <button data-val="Binôme">Binôme</button>
         </div>
       </div>
+
       <div class="field" id="wrap-tech-solo" style="display:none;">
         <label for="f-tech-solo">Technicien en Solo</label>
         <select id="f-tech-solo">
@@ -453,131 +384,153 @@
       </div>
 
       <div class="field">
-        <label for="f-comment">Commentaire (Colonne J)</label>
-        <input type="text" id="f-comment" placeholder="Remarques, détails intervention...">
+        <label for="f-comment">Commentaire</label>
+        <input type="text" id="f-comment" placeholder="Tube/libre hs, remarques...">
       </div>
 
       <div class="preview">
-        <span class="label">Montant calculé</span>
-        <span class="amount" id="f-preview">— €</span>
+        <span style="font-size:12px; color:var(--ink-muted);">Montant estimé</span>
+        <span class="amount" id="f-preview">0,00 €</span>
       </div>
 
       <button class="btn-primary" id="f-save">Enregistrer l'intervention</button>
     </div>
-
-    <div class="daytotal">
-      <div>
-        <div class="num" id="todayTotal">0,00 €</div>
-        <div class="sub" id="todayCount">0 intervention aujourd'hui</div>
-      </div>
-      <button class="btn-ghost" id="clearForm">Effacer</button>
-    </div>
-
-    <div id="todayList"></div>
   </section>
 
-  <!-- ===== VUE CARBURANT ===== -->
   <section class="view" id="view-carburant">
     <div class="card">
       <div class="field">
-        <label for="fuel-date">Date de mise du carburant</label>
+        <label for="fuel-date">Date du plein</label>
         <input type="date" id="fuel-date">
       </div>
-
       <div class="field">
-        <label>Qui a mis l'essence ?</label>
+        <label>Technicien</label>
         <div class="seg" id="fuel-tech">
-          <button data-val="Brendan" class="neutral selected">Brendan</button>
-          <button data-val="Hamlili" class="neutral">Hamlili</button>
+          <button data-val="Brendan" class="selected">Brendan</button>
+          <button data-val="Hamlili">Hamlili</button>
         </div>
       </div>
-
       <div class="field">
         <label for="fuel-amount">Montant Carburant (€)</label>
-        <input type="number" step="0.01" id="fuel-amount" placeholder="Ex: 60.00">
+        <input type="number" step="0.01" id="fuel-amount" placeholder="60.00">
       </div>
-
       <div class="field">
-        <label for="fuel-comment">Commentaire / Station (Optionnel)</label>
-        <input type="text" id="fuel-comment" placeholder="Ex: Station Total Perpignan">
+        <label for="fuel-comment">Station / Commentaire</label>
+        <input type="text" id="fuel-comment" placeholder="Station Total Perpignan">
       </div>
-
-      <button class="btn-primary" id="fuel-save" style="margin-top:8px;">Enregistrer le plein</button>
+      <button class="btn-primary" id="fuel-save">Enregistrer le plein</button>
     </div>
 
-    <!-- Récapitulatif Carburant -->
-    <div class="summary-bar">
-      <div class="summary-top">
-        <span class="lbl">TOTAL CARBURANT MOIS</span>
-        <span class="val" id="fuelMonthTotal" style="color:var(--danger);">0,00 €</span>
-      </div>
-      <div class="summary-sub">
-        <div style="font-size:11.5px; color:var(--ink-muted);">
-          Brendan: <strong id="fuelBrendanTotal">0 €</strong> · Hamlili: <strong id="fuelHamliliTotal">0 €</strong>
-        </div>
-      </div>
+    <div class="filter-bar">
+      <div class="month-total-pill" id="fuelMonthTotal">Total Mois : 0,00 €</div>
     </div>
-
     <div id="fuelList"></div>
   </section>
 
-  <!-- ===== VUE HISTORIQUE ===== -->
   <section class="view" id="view-historique">
     <div class="field" style="margin-bottom:10px;">
-      <label>Feuille consultée :</label>
+      <label>Technicien sélectionné :</label>
       <div class="seg" id="hist-tech-select">
-        <button data-val="Brendan" class="neutral selected">Brendan</button>
-        <button data-val="Hamlili" class="neutral">Hamlili</button>
+        <button data-val="Brendan" class="selected">Brendan</button>
+        <button data-val="Hamlili">Hamlili</button>
       </div>
     </div>
 
-    <div class="monthnav">
-      <button id="prevMonth">‹</button>
-      <div class="label" id="monthLabel">—</div>
-      <button id="nextMonth">›</button>
-    </div>
-
-    <div class="summary-bar">
-      <div class="summary-top">
-        <span class="lbl">TOTAL MOIS GLOBAL</span>
-        <span class="val" id="totalGlobal">0,00 €</span>
+    <div class="filter-bar">
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button class="btn-ghost" id="prevMonth">‹</button>
+        <div class="date-pill" id="monthLabel">Septembre 2026</div>
+        <button class="btn-ghost" id="nextMonth">›</button>
       </div>
-      <div class="summary-sub">
-        <div style="display:flex; gap:6px;">
-          <span class="op-badge orange">Orange: <strong id="totalOrange">0 €</strong></span>
-          <span class="op-badge sfr">SFR: <strong id="totalSFR">0 €</strong></span>
-        </div>
-        <div class="summary-details">
-          Solo: <strong id="totalSolo">0 €</strong> · Binôme: <strong id="totalBinome">0 €</strong>
-        </div>
-      </div>
+      <div class="month-total-pill" id="totalGlobalBadge">Septembre : 0,00 €</div>
     </div>
 
     <div class="field" style="margin-bottom:10px;">
-      <input type="text" id="histSearch" placeholder="🔍 Filtrer rue, n° int, commentaire...">
+      <input type="text" id="histSearch" placeholder="🔍 Rechercher N°, Réf, Typologie, Adresse...">
     </div>
 
-    <button class="btn-primary" id="exportXlsx" style="margin-bottom:12px; padding:10px; font-size:13px;">Exporter ce mois en Excel</button>
+    <div class="table-container">
+      <table class="speed-table">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Ref</th>
+            <th>Statut</th>
+            <th>Typologie</th>
+            <th>Zone</th>
+            <th>Opérateur</th>
+            <th>Tarif</th>
+            <th>+/-</th>
+          </tr>
+        </thead>
+        <tbody id="speedTableBody">
+          </tbody>
+      </table>
+    </div>
 
-    <div id="monthList"></div>
+    <button class="btn-primary" id="exportXlsx" style="margin-top:12px; font-size:12px;">Exporter en Excel (.xlsx)</button>
   </section>
 
-  <!-- ===== VUE TARIFS ===== -->
   <section class="view" id="view-tarifs">
     <div class="card">
-      <table class="tariffs">
+      <table style="width:100%; border-collapse:collapse;">
         <thead>
-          <tr><th>Typologie</th><th>Orange</th><th>SFR</th></tr>
+          <tr style="border-bottom:1px solid var(--border); text-align:left; color:var(--accent);">
+            <th style="padding:8px;">Typologie</th>
+            <th style="padding:8px;">Orange</th>
+            <th style="padding:8px;">SFR / FREE</th>
+          </tr>
         </thead>
         <tbody id="tariffRows"></tbody>
       </table>
     </div>
-    <div class="card">
-      <button class="btn-ghost" id="wipeAll" style="color:var(--danger); border-color:var(--danger); width:100%; padding:10px;">Réinitialiser la mémoire locale</button>
-    </div>
   </section>
 
 </main>
+
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Intervention 🔒</div>
+      <button class="btn-ghost" id="closeModal">✕ Fermer</button>
+    </div>
+    <div class="field">
+      <label>Zone :</label>
+      <input type="text" id="m-zone">
+    </div>
+    <div class="field">
+      <label>Date :</label>
+      <input type="text" id="m-date">
+    </div>
+    <div class="field">
+      <label>Ref intervention :</label>
+      <input type="text" id="m-num">
+    </div>
+    <div class="field">
+      <label>Planning :</label>
+      <input type="text" id="m-planning">
+    </div>
+    <div class="field">
+      <label>Typologie :</label>
+      <input type="text" id="m-typo">
+    </div>
+    <div class="field">
+      <label>Statut :</label>
+      <div class="seg" id="m-statut-seg">
+        <button data-val="Réussite" class="ok">👍 Succès</button>
+        <button data-val="Échec" class="bad">❌ Échec</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Commentaires :</label>
+      <textarea id="m-comment" rows="2"></textarea>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:14px;">
+      <button class="btn-primary" id="m-save-btn">Mettre à jour</button>
+      <button class="btn-ghost" id="m-del-btn" style="color:var(--danger); border-color:var(--danger);">Supprimer</button>
+    </div>
+  </div>
+</div>
 
 <nav class="tabbar">
   <button data-view="saisie" class="active">
@@ -606,18 +559,21 @@
 
   var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUZ8Va_VV_J15W6gH26Xxq_MimoGbLfU_6cUUfxHhiRMqOMnBghSyWpkAx90zRtk1q/exec";
 
-  var TYPOS = ["Aérien","Souterrain","Immeuble","PLP","SAV","PLP sans client"];
-  var STORE_KEY = "raccordements_entries_v4";
-  var FUEL_STORE_KEY = "raccordements_fuel_v4";
-  var TARIFF_KEY = "raccordements_tarifs_v2";
+  var TYPOS = ["Aérien", "Souterrain", "Immeuble", "PLP", "SAV", "PLP sans client", "FACADE", "APPARTEMENT", "Brassage PM"];
+  var STORE_KEY = "raccordements_entries_v5";
+  var FUEL_STORE_KEY = "raccordements_fuel_v5";
+  var TARIFF_KEY = "raccordements_tarifs_v5";
 
   var DEFAULT_TARIFFS = {
-    "Aérien": {Orange:160.00, SFR:null},
-    "Souterrain": {Orange:112.00, SFR:null},
-    "Immeuble": {Orange:54.40, SFR:null},
-    "PLP": {Orange:36.00, SFR:null},
-    "SAV": {Orange:36.00, SFR:null},
-    "PLP sans client": {Orange:12.00, SFR:null}
+    "Aérien": {Orange:160.00, SFR:140.50},
+    "Souterrain": {Orange:112.00, SFR:85.00},
+    "Immeuble": {Orange:54.40, SFR:50.00},
+    "PLP": {Orange:36.00, SFR:25.20},
+    "SAV": {Orange:36.00, SFR:23.40},
+    "PLP sans client": {Orange:12.00, SFR:12.00},
+    "FACADE": {Orange:60.00, SFR:50.00},
+    "APPARTEMENT": {Orange:50.00, SFR:45.00},
+    "Brassage PM": {Orange:20.00, SFR:15.00}
   };
 
   function safeGet(key, fallback){
@@ -635,60 +591,71 @@
   var entries = safeGet(STORE_KEY + "_" + currentViewTech, []);
   var fuelEntries = safeGet(FUEL_STORE_KEY, []);
   var tariffs = safeGet(TARIFF_KEY, DEFAULT_TARIFFS);
-  TYPOS.forEach(function(t){ if(!tariffs[t]) tariffs[t] = {Orange:0, SFR:null}; });
 
-  var form = { typo: "", statut: null, op: null, solo: null, techSolo: "Brendan" };
+  var form = { typo: "", statut: "Réussite", op: "FREE", solo: "Solo", techSolo: "Brendan" };
   var fuelForm = { tech: "Brendan" };
   var viewedMonth = new Date();
+  var selectedModalEntry = null;
 
   function fmtEuro(n){
     if (n === null || n === undefined || isNaN(n)) n = 0;
     return n.toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + " €";
   }
 
-  function todayISO(){
-    var d = new Date();
-    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
-  }
-
-  // Analyseur de Date Universel (corrige le bug undefined/undefined)
+  // Parseur Universel de Date ultra-robuste
   function parseISO(dateVal) {
     if (!dateVal) return new Date();
-    if (dateVal instanceof Date) return dateVal;
-    if (typeof dateVal === "string") {
+    if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? new Date() : dateVal;
+    if (typeof dateVal === 'number') return new Date(dateVal);
+
+    if (typeof dateVal === 'string') {
       var s = dateVal.trim();
-      if (s.indexOf('-') !== -1 && s.indexOf(' ') === -1 && s.indexOf('GMT') === -1) {
-        var p = s.split('T')[0].split('-');
-        if (p.length === 3) {
-          return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
-        }
-      }
+      if (!s) return new Date();
+
       if (s.indexOf('/') !== -1) {
         var p = s.split('/');
         if (p.length === 3) {
-          return new Date(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10));
+          var day = parseInt(p[0], 10);
+          var month = parseInt(p[1], 10) - 1;
+          var year = parseInt(p[2], 10);
+          if (!isNaN(day) && !isNaN(month) && !isNaN(year)) return new Date(year, month, day);
         }
       }
+
+      if (s.indexOf('-') !== -1 && s.indexOf(' ') === -1 && s.indexOf('GMT') === -1) {
+        var p = s.split('T')[0].split('-');
+        if (p.length === 3) {
+          var year = parseInt(p[0], 10);
+          var month = parseInt(p[1], 10) - 1;
+          var day = parseInt(p[2], 10);
+          if (!isNaN(day) && !isNaN(month) && !isNaN(year)) return new Date(year, month, day);
+        }
+      }
+
+      var parsed = new Date(s);
+      if (!isNaN(parsed.getTime())) return parsed;
     }
-    var d = new Date(dateVal);
-    return isNaN(d.getTime()) ? new Date() : d;
+    return new Date();
+  }
+
+  function sortByDateDesc(arr) {
+    return arr.slice().sort(function(a, b) {
+      return parseISO(b.date).getTime() - parseISO(a.date).getTime();
+    });
   }
 
   function toISODate(dateVal) {
     var d = parseISO(dateVal);
-    var y = d.getFullYear();
-    var m = String(d.getMonth() + 1).padStart(2, '0');
     var day = String(d.getDate()).padStart(2, '0');
-    return y + "-" + m + "-" + day;
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    return d.getFullYear() + "-" + m + "-" + day;
   }
 
   function fmtDateFR(dateVal) {
-    if (!dateVal) return "";
     var d = parseISO(dateVal);
-    var y = d.getFullYear();
-    var m = String(d.getMonth() + 1).padStart(2, '0');
     var day = String(d.getDate()).padStart(2, '0');
-    return day + "/" + m + "/" + y;
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    return day + "/" + m + "/" + d.getFullYear();
   }
 
   function toast(msg){
@@ -699,12 +666,10 @@
   }
 
   function loadEntries(){
-    renderToday();
     renderHistorique();
-
     if (!SCRIPT_URL) return;
     toast("Synchro (" + currentViewTech + ")...");
-    
+
     var url = SCRIPT_URL + "?tech=" + encodeURIComponent(currentViewTech) + "&_t=" + Date.now();
     fetch(url, { cache: "no-store" })
       .then(function(r){ return r.json(); })
@@ -712,34 +677,32 @@
         if (Array.isArray(data)){
           var map = {};
           data.forEach(function(e){ map[e.num || e.id] = e; });
-          entries = Object.values(map);
-
+          entries = sortByDateDesc(Object.values(map));
           safeSet(STORE_KEY + "_" + currentViewTech, entries);
-          renderToday();
           renderHistorique();
           toast("À jour (" + currentViewTech + ")");
         }
       })
       .catch(function(){ toast("Mode local (hors-ligne)"); });
   }
+  window.loadEntries = loadEntries;
 
   function loadFuel(){
     renderCarburant();
     if (!SCRIPT_URL) return;
-    var url = SCRIPT_URL + "?type=fuel&_t=" + Date.now();
-    fetch(url, { cache: "no-store" })
+    fetch(SCRIPT_URL + "?type=fuel&_t=" + Date.now(), { cache: "no-store" })
       .then(function(r){ return r.json(); })
       .then(function(data){
         if (Array.isArray(data)){
-          fuelEntries = data;
+          fuelEntries = sortByDateDesc(data);
           safeSet(FUEL_STORE_KEY, fuelEntries);
           renderCarburant();
         }
       });
   }
+  window.loadFuel = loadFuel;
 
-  // Navigation par Onglets
-  var titles = { saisie: "Nouvelle intervention", carburant: "Suivi Carburant", historique: "Historique", tarifs: "Tarifs" };
+  // Gestion des onglets
   document.querySelectorAll('.tabbar button').forEach(function(btn){
     btn.addEventListener('click', function(){
       document.querySelectorAll('.tabbar button').forEach(function(b){ b.classList.remove('active'); });
@@ -747,62 +710,21 @@
       var v = btn.getAttribute('data-view');
       document.querySelectorAll('.view').forEach(function(s){ s.classList.remove('active'); });
       document.getElementById('view-' + v).classList.add('active');
-      document.getElementById('headerTitle').textContent = titles[v];
       if (v === 'carburant') loadFuel();
       if (v === 'historique') renderHistorique();
       if (v === 'tarifs') renderTarifs();
     });
   });
 
-  // Sélection du Technicien dans l'Historique
-  var histTechWrap = document.getElementById('hist-tech-select');
-  histTechWrap.querySelectorAll('button').forEach(function(b){
-    b.addEventListener('click', function(){
-      currentViewTech = b.dataset.val;
-      histTechWrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
-      b.classList.add('selected');
-      entries = safeGet(STORE_KEY + "_" + currentViewTech, []);
-      loadEntries();
-    });
-  });
-
-  // Remplissage Select Typologie
+  // Remplissage Typologies
   var typoSelect = document.getElementById('f-typo');
   TYPOS.forEach(function(t){
     var opt = document.createElement('option');
     opt.value = t; opt.textContent = t;
     typoSelect.appendChild(opt);
   });
-  typoSelect.addEventListener('change', function(){
-    form.typo = typoSelect.value;
-    updatePreview();
-  });
+  typoSelect.addEventListener('change', function(){ form.typo = typoSelect.value; updatePreview(); });
 
-  var NUM_LENGTH = { "Orange": 10, "SFR": 9 };
-
-  function updateNumHint(){
-    var hint = document.getElementById('f-num-hint');
-    var num = document.getElementById('f-num').value.trim();
-    if (!form.op){
-      hint.textContent = "Sélectionne l'opérateur.";
-      hint.className = "fieldhint";
-      return;
-    }
-    var expected = NUM_LENGTH[form.op];
-    if (num.length === 0){
-      hint.textContent = expected + " caractères attendus pour " + form.op;
-      hint.className = "fieldhint";
-    } else if (num.length === expected){
-      hint.textContent = expected + " caractères ✓";
-      hint.className = "fieldhint ok";
-    } else {
-      hint.textContent = num.length + "/" + expected + " caractères (" + form.op + ")";
-      hint.className = "fieldhint bad";
-    }
-  }
-  document.getElementById('f-num').addEventListener('input', updateNumHint);
-
-  // Gestion des Boutons Segments
   function wireSeg(id, key, callback){
     var wrap = document.getElementById(id);
     wrap.querySelectorAll('button').forEach(function(b){
@@ -812,155 +734,189 @@
         b.classList.add('selected');
         if (callback) callback(b.dataset.val);
         updatePreview();
-        if (key === 'op') updateNumHint();
       });
     });
   }
-
   wireSeg('f-statut', 'statut');
   wireSeg('f-op', 'op');
-  wireSeg('f-solo', 'solo', function(val){
-    var wrap = document.getElementById('wrap-tech-solo');
-    if (val === 'Solo') {
-      wrap.style.display = 'block';
-    } else {
-      wrap.style.display = 'none';
-    }
-  });
-
-  document.getElementById('f-tech-solo').addEventListener('change', function(){
-    form.techSolo = this.value;
+  wireSeg('f-solo', 'solo', function(v){
+    document.getElementById('wrap-tech-solo').style.display = (v === 'Solo') ? 'block' : 'none';
   });
 
   function computeMontant(typo, statut, op){
-    if (!typo || !statut || !op) return null;
-    if (statut === "Échec") return 0;
+    if (!typo || statut === "Échec") return 0;
     var row = tariffs[typo];
     if (!row) return 0;
-    var v = row[op];
-    return (v === null || v === undefined) ? 0 : v;
+    var v = (op === "Orange") ? row.Orange : row.SFR;
+    return v || 0;
   }
 
   function updatePreview(){
     var m = computeMontant(form.typo, form.statut, form.op);
-    document.getElementById('f-preview').textContent = (m === null) ? "— €" : fmtEuro(m);
+    document.getElementById('f-preview').textContent = fmtEuro(m);
   }
 
-  document.getElementById('f-date').value = todayISO();
-  document.getElementById('fuel-date').value = todayISO();
+  document.getElementById('f-date').value = toISODate(new Date());
+  document.getElementById('fuel-date').value = toISODate(new Date());
 
-  function resetForm(){
-    form = { typo: "", statut: null, op: null, solo: null, techSolo: document.getElementById('f-tech-solo').value };
-    document.getElementById('f-date').value = todayISO();
-    document.getElementById('f-num').value = "";
-    document.getElementById('f-addr').value = "";
-    document.getElementById('f-comment').value = "";
-    typoSelect.value = "";
-    document.querySelectorAll('#f-statut button, #f-op button, #f-solo button')
-      .forEach(function(b){ b.classList.remove('selected'); });
-    document.getElementById('wrap-tech-solo').style.display = 'none';
-    updateNumHint();
-    updatePreview();
-  }
-  document.getElementById('clearForm').addEventListener('click', resetForm);
-
-  // Sauvegarde Intervention
+  // Enregistrement de l'intervention
   document.getElementById('f-save').addEventListener('click', function(){
     var date = document.getElementById('f-date').value;
     var num = document.getElementById('f-num').value.trim();
+    var zone = document.getElementById('f-zone').value.trim();
     var addr = document.getElementById('f-addr').value.trim();
     var comment = document.getElementById('f-comment').value.trim();
 
-    if (!date || !num || !form.typo || !form.statut || !form.op || !form.solo){
-      toast("Remplis tous les champs requis");
-      return;
-    }
-    var expectedLen = NUM_LENGTH[form.op];
-    if (num.length !== expectedLen){
-      toast("N° intervention invalide (" + expectedLen + " caract.)");
+    if (!date || !num || !form.typo){
+      toast("Complète les champs requis");
       return;
     }
 
     var montant = computeMontant(form.typo, form.statut, form.op);
 
     var entry = {
-      id: Date.now() + "-" + Math.random().toString(36).slice(2,7),
-      date: date, num: num, addr: addr,
-      typo: form.typo, statut: form.statut, op: form.op, solo: form.solo,
+      id: "INT-" + Math.floor(10000 + Math.random() * 90000),
+      num: num,
+      date: date,
+      zone: zone || "66",
+      addr: addr,
+      typo: form.typo,
+      statut: form.statut,
+      op: form.op,
+      solo: form.solo,
       techSolo: document.getElementById('f-tech-solo').value,
-      montant: montant, comment: comment
+      montant: montant,
+      comment: comment
     };
 
     entries.push(entry);
+    entries = sortByDateDesc(entries);
     safeSet(STORE_KEY + "_" + currentViewTech, entries);
-    renderToday();
-    resetForm();
-    toast("Enregistré en local");
+    renderHistorique();
+    toast("Intervention ajoutée !");
 
     fetch(SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(entry)
-    }).then(function(){
-      toast("Synchronisé sur Sheets");
-      setTimeout(loadEntries, 1000);
-    }).catch(function(){
-      toast("Sauvegardé (hors-ligne)");
     });
   });
 
-  // LOGIQUE CARBURANT
-  var fuelTechWrap = document.getElementById('fuel-tech');
-  fuelTechWrap.querySelectorAll('button').forEach(function(b){
-    b.addEventListener('click', function(){
-      fuelForm.tech = b.dataset.val;
-      fuelTechWrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
-      b.classList.add('selected');
+  // Affichage Historique SpeedConnect
+  var MOIS_FR = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+
+  function renderHistorique(){
+    var y = viewedMonth.getFullYear(), m = viewedMonth.getMonth();
+    document.getElementById('monthLabel').textContent = MOIS_FR[m] + " " + y;
+
+    var monthEntries = entries.filter(function(e){
+      var d = parseISO(e.date);
+      return d.getFullYear() === y && d.getMonth() === m;
     });
-  });
 
-  document.getElementById('fuel-save').addEventListener('click', function(){
-    var date = document.getElementById('fuel-date').value;
-    var amount = parseFloat(document.getElementById('fuel-amount').value);
-    var comment = document.getElementById('fuel-comment').value.trim();
+    var q = document.getElementById('histSearch').value.trim().toLowerCase();
+    if (q) {
+      monthEntries = monthEntries.filter(function(e){
+        return (e.num + " " + (e.comment||"") + " " + e.typo + " " + e.op).toLowerCase().indexOf(q) !== -1;
+      });
+    }
 
-    if (!date || isNaN(amount) || amount <= 0){
-      toast("Remplis la date et le montant valide");
+    monthEntries = sortByDateDesc(monthEntries);
+
+    var totMois = monthEntries.reduce(function(s,e){ return s + (e.montant||0); }, 0);
+    document.getElementById('totalGlobalBadge').textContent = MOIS_FR[m] + " : " + fmtEuro(totMois);
+
+    var tbody = document.getElementById('speedTableBody');
+    tbody.innerHTML = "";
+
+    if (monthEntries.length === 0){
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--ink-muted); padding:20px;">Aucune intervention trouvée.</td></tr>';
       return;
     }
 
-    var item = {
-      type: "fuel",
-      date: date,
-      tech: fuelForm.tech || "Brendan",
-      montant: amount,
-      comment: comment
-    };
+    monthEntries.forEach(function(e, idx){
+      var tr = document.createElement('tr');
+      var iconStatut = e.statut === "Réussite" ? "👍" : "❌";
 
-    fuelEntries.push(item);
-    safeSet(FUEL_STORE_KEY, fuelEntries);
-    renderCarburant();
+      tr.innerHTML = 
+        '<td><span class="num-link">' + (17600 + idx) + '</span></td>' +
+        '<td style="font-family:var(--font-mono);">' + escapeHtml(e.num) + '</td>' +
+        '<td class="badge-statut">' + iconStatut + '</td>' +
+        '<td><span class="badge-typo">' + escapeHtml(e.typo) + '</span></td>' +
+        '<td>' + escapeHtml(e.zone || "66") + '</td>' +
+        '<td><span class="badge-op">' + escapeHtml(e.op) + '</span></td>' +
+        '<td class="tarif-val">' + fmtEuro(e.montant) + '</td>' +
+        '<td><button class="btn-ghost" style="padding:2px 6px;">✏️</button></td>';
 
-    document.getElementById('fuel-amount').value = "";
-    document.getElementById('fuel-comment').value = "";
-    toast("Plein enregistré !");
+      tr.addEventListener('click', function(){ openModal(e); });
+      tbody.appendChild(tr);
+    });
+  }
 
-    fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(item)
-    }).then(function(){
-      toast("Plein synchronisé sur Sheets");
-      setTimeout(loadFuel, 1000);
+  // Modal de détail / édition SpeedConnect
+  function openModal(e){
+    selectedModalEntry = e;
+    document.getElementById('modalTitle').textContent = "Intervention " + escapeHtml(e.num) + " 🔒";
+    document.getElementById('m-zone').value = e.zone || "66 FREE";
+    document.getElementById('m-date').value = fmtDateFR(e.date);
+    document.getElementById('m-num').value = e.num;
+    document.getElementById('m-planning').value = e.techSolo || currentViewTech;
+    document.getElementById('m-typo').value = e.typo;
+    document.getElementById('m-comment').value = e.comment || "";
+
+    var seg = document.getElementById('m-statut-seg');
+    seg.querySelectorAll('button').forEach(function(b){
+      b.classList.toggle('selected', b.dataset.val === e.statut);
+    });
+
+    document.getElementById('detailModal').classList.add('active');
+  }
+
+  document.getElementById('closeModal').addEventListener('click', function(){
+    document.getElementById('detailModal').classList.remove('active');
+  });
+
+  document.getElementById('m-save-btn').addEventListener('click', function(){
+    if (!selectedModalEntry) return;
+    selectedModalEntry.zone = document.getElementById('m-zone').value;
+    selectedModalEntry.num = document.getElementById('m-num').value;
+    selectedModalEntry.typo = document.getElementById('m-typo').value;
+    selectedModalEntry.comment = document.getElementById('m-comment').value;
+
+    safeSet(STORE_KEY + "_" + currentViewTech, entries);
+    renderHistorique();
+    document.getElementById('detailModal').classList.remove('active');
+    toast("Mise à jour enregistrée");
+  });
+
+  document.getElementById('m-del-btn').addEventListener('click', function(){
+    if (!selectedModalEntry || !confirm("Supprimer cette intervention ?")) return;
+    entries = entries.filter(function(x){ return x !== selectedModalEntry; });
+    safeSet(STORE_KEY + "_" + currentViewTech, entries);
+    renderHistorique();
+    document.getElementById('detailModal').classList.remove('active');
+    toast("Intervention supprimée");
+  });
+
+  document.getElementById('hist-tech-select').querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      currentViewTech = b.dataset.val;
+      document.getElementById('hist-tech-select').querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
+      b.classList.add('selected');
+      entries = sortByDateDesc(safeGet(STORE_KEY + "_" + currentViewTech, []));
+      loadEntries();
     });
   });
+
+  document.getElementById('prevMonth').addEventListener('click', function(){ viewedMonth.setMonth(viewedMonth.getMonth() - 1); renderHistorique(); });
+  document.getElementById('nextMonth').addEventListener('click', function(){ viewedMonth.setMonth(viewedMonth.getMonth() + 1); renderHistorique(); });
+  document.getElementById('histSearch').addEventListener('input', renderHistorique);
+  document.getElementById('reloadBtn').addEventListener('click', loadEntries);
 
   function renderCarburant(){
     var list = document.getElementById('fuelList');
     list.innerHTML = "";
-
     var y = viewedMonth.getFullYear(), m = viewedMonth.getMonth();
     var monthFuel = fuelEntries.filter(function(f){
       var d = parseISO(f.date);
@@ -968,97 +924,43 @@
     });
 
     var totMois = monthFuel.reduce(function(s,f){ return s + (f.montant||0); }, 0);
-    var totBrendan = monthFuel.filter(function(f){ return f.tech === "Brendan"; }).reduce(function(s,f){ return s + (f.montant||0); }, 0);
-    var totHamlili = monthFuel.filter(function(f){ return f.tech === "Hamlili"; }).reduce(function(s,f){ return s + (f.montant||0); }, 0);
-
-    document.getElementById('fuelMonthTotal').textContent = fmtEuro(totMois);
-    document.getElementById('fuelBrendanTotal').textContent = fmtEuro(totBrendan);
-    document.getElementById('fuelHamliliTotal').textContent = fmtEuro(totHamlili);
+    document.getElementById('fuelMonthTotal').textContent = "Total Mois : " + fmtEuro(totMois);
 
     if (monthFuel.length === 0){
-      list.innerHTML = '<div class="empty">Aucun plein de carburant ce mois-ci.</div>';
+      list.innerHTML = '<div style="color:var(--ink-muted); text-align:center; padding:20px;">Aucun plein enregistré.</div>';
       return;
     }
 
-    monthFuel.slice().reverse().forEach(function(f){
+    monthFuel.forEach(function(f){
       var div = document.createElement('div');
-      div.className = 'entry';
-      div.style.padding = '10px 12px';
-      div.style.marginBottom = '6px';
+      div.className = 'card';
+      div.style.display = 'flex';
+      div.style.justifyContent = 'space-between';
+      div.style.alignItems = 'center';
       div.innerHTML = 
-        '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-          '<div>' +
-            '<strong>' + fmtDateFR(f.date) + '</strong> · <span class="tag neutral">' + escapeHtml(f.tech) + '</span>' +
-            (f.comment ? '<div style="font-size:11px; color:var(--ink-muted); margin-top:2px;">💬 ' + escapeHtml(f.comment) + '</div>' : '') +
-          '</div>' +
-          '<div style="font-family:var(--font-mono); font-weight:700; color:var(--danger);">' + fmtEuro(f.montant) + '</div>' +
-        '</div>';
+        '<div>' +
+          '<strong>' + fmtDateFR(f.date) + '</strong> · ' + escapeHtml(f.tech) +
+          (f.comment ? '<div style="font-size:11px; color:var(--ink-muted);">' + escapeHtml(f.comment) + '</div>' : '') +
+        '</div>' +
+        '<div style="font-family:var(--font-mono); color:var(--danger); font-weight:700;">' + fmtEuro(f.montant) + '</div>';
       list.appendChild(div);
     });
   }
 
-  function deleteEntry(id, num){
-    if(!confirm("Supprimer cette intervention ?")) return;
-    
-    entries = entries.filter(function(e){ return e.id !== id && e.num !== num; });
-    safeSet(STORE_KEY + "_" + currentViewTech, entries);
-    renderToday();
-    renderHistorique();
-    toast("Supprimé en local");
-
-    fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: "delete", id: id, num: num })
+  function renderTarifs(){
+    var tbody = document.getElementById('tariffRows');
+    tbody.innerHTML = "";
+    TYPOS.forEach(function(t){
+      var tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid var(--border)';
+      var tOrg = tariffs[t] ? tariffs[t].Orange : 0;
+      var tSfr = tariffs[t] ? tariffs[t].SFR : 0;
+      tr.innerHTML = 
+        '<td style="padding:8px;"><strong>' + escapeHtml(t) + '</strong></td>' +
+        '<td style="padding:8px;"><input type="number" step="0.01" style="width:70px; padding:4px; border:1px solid var(--border); border-radius:4px; background:var(--surface-alt); color:#FFF;" value="' + tOrg + '"></td>' +
+        '<td style="padding:8px;"><input type="number" step="0.01" style="width:70px; padding:4px; border:1px solid var(--border); border-radius:4px; background:var(--surface-alt); color:#FFF;" value="' + tSfr + '"></td>';
+      tbody.appendChild(tr);
     });
-  }
-
-  function entryCard(e){
-    var div = document.createElement('div');
-    div.className = 'entry';
-    var statutClass = e.statut === "Réussite" ? "ok" : "bad";
-    
-    var addrHtml = e.addr ? '<div class="entry-addr">📍 ' + escapeHtml(e.addr) + '</div>' : '<div class="entry-addr"><em>Aucune adresse saisie</em></div>';
-    var gpsBtnHtml = e.addr ? '<a class="btn-gps" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(e.addr) + '" target="_blank">🗺️ Maps</a>' : '';
-    var commentHtml = e.comment ? '<div class="entry-comment">💬 ' + escapeHtml(e.comment) + '</div>' : '';
-
-    div.innerHTML =
-      '<div class="entry-header">' +
-        '<div class="entry-title">' +
-          '<span class="entry-num">' + escapeHtml(e.num) + '</span>' +
-          '<span class="entry-typo-badge">· ' + escapeHtml(e.typo) + '</span>' +
-        '</div>' +
-        '<div class="entry-right">' +
-          '<span class="entry-amount">' + fmtEuro(e.montant) + '</span>' +
-          '<span class="entry-chevron">▼</span>' +
-        '</div>' +
-      '</div>' +
-      '<div class="entry-details">' +
-        addrHtml +
-        commentHtml +
-        '<div class="entry-footer">' +
-          '<div class="entry-tags">' +
-            '<span class="tag ' + statutClass + '">' + escapeHtml(e.statut) + '</span>' +
-            '<span class="tag neutral">' + escapeHtml(e.solo) + '</span>' +
-          '</div>' +
-          '<div style="display:flex; align-items:center; gap:8px;">' +
-            gpsBtnHtml +
-            '<button class="entry-del" data-id="' + e.id + '" data-num="' + e.num + '">Supprimer</button>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-
-    div.querySelector('.entry-header').addEventListener('click', function(){
-      div.classList.toggle('open');
-    });
-
-    div.querySelector('.entry-del').addEventListener('click', function(ev){
-      ev.stopPropagation();
-      deleteEntry(e.id, e.num);
-    });
-
-    return div;
   }
 
   function escapeHtml(s){
@@ -1066,217 +968,6 @@
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
     });
   }
-
-  function renderToday(){
-    var today = todayISO();
-    var todays = entries.filter(function(e){ return toISODate(e.date) === today; });
-    var total = todays.reduce(function(s,e){ return s + (e.montant||0); }, 0);
-    document.getElementById('todayTotal').textContent = fmtEuro(total);
-    document.getElementById('todayCount').textContent = todays.length + (todays.length > 1 ? " interventions" : " intervention");
-    var list = document.getElementById('todayList');
-    list.innerHTML = "";
-    if (todays.length === 0){
-      var e = document.createElement('div');
-      e.className = 'empty';
-      e.textContent = "Aucune intervention aujourd'hui.";
-      list.appendChild(e);
-      return;
-    }
-    todays.slice().reverse().forEach(function(en){ list.appendChild(entryCard(en)); });
-  }
-
-  var MOIS_FR = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
-
-  document.getElementById('prevMonth').addEventListener('click', function(){
-    viewedMonth.setMonth(viewedMonth.getMonth() - 1);
-    renderHistorique();
-    renderCarburant();
-  });
-  document.getElementById('nextMonth').addEventListener('click', function(){
-    viewedMonth.setMonth(viewedMonth.getMonth() + 1);
-    renderHistorique();
-    renderCarburant();
-  });
-
-  var searchInput = document.getElementById('histSearch');
-  searchInput.addEventListener('input', function(){ renderHistorique(); });
-
-  var currentMonthEntries = [];
-  var currentMonthLabel = "";
-
-  function renderHistorique(){
-    var y = viewedMonth.getFullYear(), m = viewedMonth.getMonth();
-    document.getElementById('monthLabel').textContent = MOIS_FR[m] + " " + y;
-    currentMonthLabel = MOIS_FR[m] + "_" + y;
-
-    var monthEntries = entries.filter(function(e){
-      var d = parseISO(e.date);
-      return d.getFullYear() === y && d.getMonth() === m;
-    });
-
-    var q = searchInput.value.trim().toLowerCase();
-    var filteredEntries = monthEntries.filter(function(e){
-      if (!q) return true;
-      var str = (e.num + " " + (e.addr||"") + " " + (e.comment||"") + " " + e.typo + " " + e.op + " " + e.statut + " " + e.solo).toLowerCase();
-      return str.indexOf(q) !== -1;
-    });
-
-    currentMonthEntries = monthEntries.slice().sort(function(a,b){
-      var da = toISODate(a.date), db = toISODate(b.date);
-      return da < db ? -1 : (da > db ? 1 : 0);
-    });
-
-    var totGlobal = monthEntries.reduce(function(s,e){ return s + (e.montant||0); }, 0);
-    var totOrange = monthEntries.filter(function(e){ return e.op === "Orange"; }).reduce(function(s,e){ return s+(e.montant||0); }, 0);
-    var totSFR = monthEntries.filter(function(e){ return e.op === "SFR"; }).reduce(function(s,e){ return s+(e.montant||0); }, 0);
-    var totBinome = monthEntries.filter(function(e){ return e.solo === "Binôme"; }).reduce(function(s,e){ return s+(e.montant||0); }, 0);
-    var totSolo = monthEntries.filter(function(e){ return e.solo === "Solo"; }).reduce(function(s,e){ return s+(e.montant||0); }, 0);
-
-    document.getElementById('totalGlobal').textContent = fmtEuro(totGlobal);
-    document.getElementById('totalOrange').textContent = fmtEuro(totOrange);
-    document.getElementById('totalSFR').textContent = fmtEuro(totSFR);
-    document.getElementById('totalBinome').textContent = fmtEuro(totBinome);
-    document.getElementById('totalSolo').textContent = fmtEuro(totSolo);
-
-    var list = document.getElementById('monthList');
-    list.innerHTML = "";
-
-    if (filteredEntries.length === 0){
-      var e = document.createElement('div');
-      e.className = 'empty';
-      e.textContent = q ? "Aucun résultat pour cette recherche." : "Aucune intervention ce mois-ci.";
-      list.appendChild(e);
-      return;
-    }
-
-    var byDay = {};
-    filteredEntries.forEach(function(en){
-      var isoKey = toISODate(en.date);
-      if (!byDay[isoKey]) byDay[isoKey] = [];
-      byDay[isoKey].push(en);
-    });
-
-    Object.keys(byDay).sort().reverse().forEach(function(dateIso){
-      var dayItems = byDay[dateIso];
-      var dayTot = dayItems.reduce(function(s,e){ return s + (e.montant||0); }, 0);
-
-      var group = document.createElement('div');
-      group.className = 'daygroup';
-
-      var header = document.createElement('div');
-      header.className = 'daygroup-header';
-      header.innerHTML = '<h3>' + fmtDateFR(dateIso) + '</h3><span class="daygroup-total">' + fmtEuro(dayTot) + '</span>';
-      group.appendChild(header);
-
-      var dayCols = document.createElement('div');
-      dayCols.className = 'day-cols';
-
-      ["Orange", "SFR"].forEach(function(opName){
-        var col = document.createElement('div');
-        col.className = 'col-op';
-        var opItems = dayItems.filter(function(x){ return x.op === opName; });
-        var opTot = opItems.reduce(function(s,e){ return s + (e.montant||0); }, 0);
-        var opClass = opName === "Orange" ? "orange" : "sfr";
-
-        col.innerHTML = '<div class="col-op-header ' + opClass + '"><span>' + opName + '</span><span>' + fmtEuro(opTot) + '</span></div>';
-
-        if (opItems.length === 0) {
-          col.innerHTML += '<div class="col-empty">Aucune int.</div>';
-        } else {
-          opItems.forEach(function(item){
-            col.appendChild(entryCard(item));
-          });
-        }
-        dayCols.appendChild(col);
-      });
-
-      group.appendChild(dayCols);
-      list.appendChild(group);
-    });
-  }
-
-  document.getElementById('exportXlsx').addEventListener('click', function(){
-    if (!currentMonthEntries || currentMonthEntries.length === 0) {
-      toast("Aucune donnée à exporter");
-      return;
-    }
-    var rows = currentMonthEntries.map(function(e){
-      return {
-        "Date": fmtDateFR(e.date),
-        "N° intervention": e.num,
-        "Adresse client": e.addr,
-        "Typologie": e.typo,
-        "Résultat": e.statut,
-        "Opérateur": e.op,
-        "Solo / Binôme": e.solo,
-        "Montant (€)": e.montant,
-        "Commentaire": e.comment
-      };
-    });
-    var ws = XLSX.utils.json_to_sheet(rows);
-    var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Interventions");
-    XLSX.writeFile(wb, "Raccordements_" + currentViewTech + "_" + currentMonthLabel + ".xlsx");
-  });
-
-  function renderTarifs(){
-    var tbody = document.getElementById('tariffRows');
-    tbody.innerHTML = "";
-    TYPOS.forEach(function(t){
-      var tr = document.createElement('tr');
-      var tOrange = tariffs[t] && tariffs[t].Orange !== null ? tariffs[t].Orange : "";
-      var tSFR = tariffs[t] && tariffs[t].SFR !== null ? tariffs[t].SFR : "";
-
-      tr.innerHTML = '<td><strong>' + escapeHtml(t) + '</strong></td>' +
-        '<td><input type="number" step="0.01" data-typo="' + escapeHtml(t) + '" data-op="Orange" value="' + tOrange + '"></td>' +
-        '<td><input type="number" step="0.01" data-typo="' + escapeHtml(t) + '" data-op="SFR" value="' + tSFR + '"></td>';
-      tbody.appendChild(tr);
-    });
-
-    tbody.querySelectorAll('input').forEach(function(inp){
-      inp.addEventListener('change', function(){
-        var typ = inp.dataset.typo;
-        var op = inp.dataset.op;
-        var val = parseFloat(inp.value);
-        if (isNaN(val)) val = null;
-        if (!tariffs[typ]) tariffs[typ] = {};
-        tariffs[typ][op] = val;
-        safeSet(TARIFF_KEY, tariffs);
-        toast("Tarifs mis à jour");
-        updatePreview();
-      });
-    });
-  }
-
-  document.getElementById('wipeAll').addEventListener('click', function(){
-    if (confirm("Réinitialiser les données locales (" + currentViewTech + ") ?")){
-      localStorage.removeItem(STORE_KEY + "_" + currentViewTech);
-      entries = [];
-      renderToday();
-      renderHistorique();
-      toast("Mémoire locale réinitialisée");
-    }
-  });
-
-  // Détection de retour sur l'application (Auto-Synchro)
-  document.addEventListener("visibilitychange", function() {
-    if (document.visibilityState === "visible") {
-      loadEntries();
-      if (document.getElementById('view-carburant').classList.contains('active')) {
-        loadFuel();
-      }
-    }
-  });
-
-  window.addEventListener("focus", function() {
-    loadEntries();
-  });
-
-  document.querySelector('header.top').style.cursor = 'pointer';
-  document.querySelector('header.top').addEventListener('click', function(){
-    loadEntries();
-    loadFuel();
-  });
 
   document.addEventListener("DOMContentLoaded", function(){
     loadEntries();
