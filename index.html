@@ -111,6 +111,7 @@
   .fieldhint.ok { color: var(--success); font-weight: 600; }
   
   .field input[type="text"],
+  .field input[type="number"],
   .field input[type="date"],
   .field select {
     width: 100%;
@@ -398,16 +399,9 @@
 
 <main>
 
-  <!-- ===== VUE SAISIE ===== -->
+  <!-- ===== VUE SAISIE INTERVENTION ===== -->
   <section class="view active" id="view-saisie">
     <div class="card">
-      <div class="field">
-        <label>Technicien / Appareil</label>
-        <div class="seg" id="f-tech">
-          <button data-val="Brendan" class="neutral">Brendan</button>
-          <button data-val="Hamlili" class="neutral">Hamlili</button>
-        </div>
-      </div>
       <div class="field">
         <label for="f-date">Date</label>
         <input type="date" id="f-date">
@@ -441,6 +435,8 @@
           <button data-val="Échec" class="bad">Échec</button>
         </div>
       </div>
+
+      <!-- Mode Solo / Binôme + Menu Déroulant Solo -->
       <div class="field">
         <label>Solo / Binôme</label>
         <div class="seg" id="f-solo">
@@ -448,6 +444,14 @@
           <button data-val="Binôme" class="neutral">Binôme</button>
         </div>
       </div>
+      <div class="field" id="wrap-tech-solo" style="display:none;">
+        <label for="f-tech-solo">Technicien en Solo</label>
+        <select id="f-tech-solo">
+          <option value="Brendan">Brendan</option>
+          <option value="Hamlili">Hamlili</option>
+        </select>
+      </div>
+
       <div class="field">
         <label for="f-comment">Commentaire (Colonne J)</label>
         <input type="text" id="f-comment" placeholder="Remarques, détails intervention...">
@@ -472,8 +476,61 @@
     <div id="todayList"></div>
   </section>
 
+  <!-- ===== VUE CARBURANT ===== -->
+  <section class="view" id="view-carburant">
+    <div class="card">
+      <div class="field">
+        <label for="fuel-date">Date de mise du carburant</label>
+        <input type="date" id="fuel-date">
+      </div>
+
+      <div class="field">
+        <label>Qui a mis l'essence ?</label>
+        <div class="seg" id="fuel-tech">
+          <button data-val="Brendan" class="neutral selected">Brendan</button>
+          <button data-val="Hamlili" class="neutral">Hamlili</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="fuel-amount">Montant Carburant (€)</label>
+        <input type="number" step="0.01" id="fuel-amount" placeholder="Ex: 60.00">
+      </div>
+
+      <div class="field">
+        <label for="fuel-comment">Commentaire / Station (Optionnel)</label>
+        <input type="text" id="fuel-comment" placeholder="Ex: Station Total Perpignan">
+      </div>
+
+      <button class="btn-primary" id="fuel-save" style="margin-top:8px;">Enregistrer le plein</button>
+    </div>
+
+    <!-- Récapitulatif Carburant -->
+    <div class="summary-bar">
+      <div class="summary-top">
+        <span class="lbl">TOTAL CARBURANT MOIS</span>
+        <span class="val" id="fuelMonthTotal" style="color:var(--danger);">0,00 €</span>
+      </div>
+      <div class="summary-sub">
+        <div style="font-size:11.5px; color:var(--ink-muted);">
+          Brendan: <strong id="fuelBrendanTotal">0 €</strong> · Hamlili: <strong id="fuelHamliliTotal">0 €</strong>
+        </div>
+      </div>
+    </div>
+
+    <div id="fuelList"></div>
+  </section>
+
   <!-- ===== VUE HISTORIQUE ===== -->
   <section class="view" id="view-historique">
+    <div class="field" style="margin-bottom:10px;">
+      <label>Feuille consultée :</label>
+      <div class="seg" id="hist-tech-select">
+        <button data-val="Brendan" class="neutral selected">Brendan</button>
+        <button data-val="Hamlili" class="neutral">Hamlili</button>
+      </div>
+    </div>
+
     <div class="monthnav">
       <button id="prevMonth">‹</button>
       <div class="label" id="monthLabel">—</div>
@@ -527,6 +584,10 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
     Saisie
   </button>
+  <button data-view="carburant">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v18M13 11h4a2 2 0 0 1 2 2v7a2 2 0 0 0 2 2M13 6h4"/><circle cx="7" cy="7" r="2"/></svg>
+    Carburant
+  </button>
   <button data-view="historique">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
     Historique
@@ -546,9 +607,9 @@
   var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUZ8Va_VV_J15W6gH26Xxq_MimoGbLfU_6cUUfxHhiRMqOMnBghSyWpkAx90zRtk1q/exec";
 
   var TYPOS = ["Aérien","Souterrain","Immeuble","PLP","SAV","PLP sans client"];
-  var STORE_KEY = "raccordements_entries_v3";
+  var STORE_KEY = "raccordements_entries_v4";
+  var FUEL_STORE_KEY = "raccordements_fuel_v4";
   var TARIFF_KEY = "raccordements_tarifs_v2";
-  var TECH_KEY = "raccordements_tech_user";
 
   var DEFAULT_TARIFFS = {
     "Aérien": {Orange:160.00, SFR:null},
@@ -570,12 +631,14 @@
     catch(e){ return false; }
   }
 
-  var currentTech = safeGet(TECH_KEY, "Brendan");
-  var entries = safeGet(STORE_KEY + "_" + currentTech, []);
+  var currentViewTech = "Brendan";
+  var entries = safeGet(STORE_KEY + "_" + currentViewTech, []);
+  var fuelEntries = safeGet(FUEL_STORE_KEY, []);
   var tariffs = safeGet(TARIFF_KEY, DEFAULT_TARIFFS);
   TYPOS.forEach(function(t){ if(!tariffs[t]) tariffs[t] = {Orange:0, SFR:null}; });
 
-  var form = { tech: currentTech, typo: "", statut: null, op: null, solo: null };
+  var form = { typo: "", statut: null, op: null, solo: null, techSolo: "Brendan" };
+  var fuelForm = { tech: "Brendan" };
   var viewedMonth = new Date();
 
   function fmtEuro(n){
@@ -616,9 +679,9 @@
     renderHistorique();
 
     if (!SCRIPT_URL) return;
-    toast("Synchro (" + currentTech + ")...");
+    toast("Synchro (" + currentViewTech + ")...");
     
-    var url = SCRIPT_URL + "?tech=" + encodeURIComponent(currentTech);
+    var url = SCRIPT_URL + "?tech=" + encodeURIComponent(currentViewTech);
     fetch(url)
       .then(function(r){ return r.json(); })
       .then(function(data){
@@ -627,31 +690,31 @@
           data.forEach(function(e){ map[e.num || e.id] = e; });
           entries = Object.values(map);
 
-          safeSet(STORE_KEY + "_" + currentTech, entries);
+          safeSet(STORE_KEY + "_" + currentViewTech, entries);
           renderToday();
           renderHistorique();
-          toast("À jour (" + currentTech + ")");
+          toast("À jour (" + currentViewTech + ")");
         }
       })
       .catch(function(){ toast("Mode local (hors-ligne)"); });
   }
 
-  // Initialisation bouton Technicien
-  var techWrap = document.getElementById('f-tech');
-  techWrap.querySelectorAll('button').forEach(function(b){
-    if (b.dataset.val === currentTech) b.classList.add('selected');
-    b.addEventListener('click', function(){
-      currentTech = b.dataset.val;
-      form.tech = currentTech;
-      safeSet(TECH_KEY, currentTech);
-      techWrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
-      b.classList.add('selected');
-      entries = safeGet(STORE_KEY + "_" + currentTech, []);
-      loadEntries();
-    });
-  });
+  function loadFuel(){
+    renderCarburant();
+    if (!SCRIPT_URL) return;
+    fetch(SCRIPT_URL + "?type=fuel")
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (Array.isArray(data)){
+          fuelEntries = data;
+          safeSet(FUEL_STORE_KEY, fuelEntries);
+          renderCarburant();
+        }
+      });
+  }
 
-  var titles = { saisie: "Nouvelle intervention", historique: "Historique", tarifs: "Tarifs" };
+  // Navigation par Onglets
+  var titles = { saisie: "Nouvelle intervention", carburant: "Suivi Carburant", historique: "Historique", tarifs: "Tarifs" };
   document.querySelectorAll('.tabbar button').forEach(function(btn){
     btn.addEventListener('click', function(){
       document.querySelectorAll('.tabbar button').forEach(function(b){ b.classList.remove('active'); });
@@ -660,11 +723,25 @@
       document.querySelectorAll('.view').forEach(function(s){ s.classList.remove('active'); });
       document.getElementById('view-' + v).classList.add('active');
       document.getElementById('headerTitle').textContent = titles[v];
+      if (v === 'carburant') loadFuel();
       if (v === 'historique') renderHistorique();
       if (v === 'tarifs') renderTarifs();
     });
   });
 
+  // Sélection du Technicien dans l'Historique
+  var histTechWrap = document.getElementById('hist-tech-select');
+  histTechWrap.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      currentViewTech = b.dataset.val;
+      histTechWrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
+      b.classList.add('selected');
+      entries = safeGet(STORE_KEY + "_" + currentViewTech, []);
+      loadEntries();
+    });
+  });
+
+  // Remplissage Select Typologie
   var typoSelect = document.getElementById('f-typo');
   TYPOS.forEach(function(t){
     var opt = document.createElement('option');
@@ -700,21 +777,35 @@
   }
   document.getElementById('f-num').addEventListener('input', updateNumHint);
 
-  function wireSeg(id, key){
+  // Gestion des Boutons Segments
+  function wireSeg(id, key, callback){
     var wrap = document.getElementById(id);
     wrap.querySelectorAll('button').forEach(function(b){
       b.addEventListener('click', function(){
         form[key] = b.dataset.val;
         wrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
         b.classList.add('selected');
+        if (callback) callback(b.dataset.val);
         updatePreview();
         if (key === 'op') updateNumHint();
       });
     });
   }
+
   wireSeg('f-statut', 'statut');
   wireSeg('f-op', 'op');
-  wireSeg('f-solo', 'solo');
+  wireSeg('f-solo', 'solo', function(val){
+    var wrap = document.getElementById('wrap-tech-solo');
+    if (val === 'Solo') {
+      wrap.style.display = 'block';
+    } else {
+      wrap.style.display = 'none';
+    }
+  });
+
+  document.getElementById('f-tech-solo').addEventListener('change', function(){
+    form.techSolo = this.value;
+  });
 
   function computeMontant(typo, statut, op){
     if (!typo || !statut || !op) return null;
@@ -731,9 +822,10 @@
   }
 
   document.getElementById('f-date').value = todayISO();
+  document.getElementById('fuel-date').value = todayISO();
 
   function resetForm(){
-    form = { tech: currentTech, typo: "", statut: null, op: null, solo: null };
+    form = { typo: "", statut: null, op: null, solo: null, techSolo: document.getElementById('f-tech-solo').value };
     document.getElementById('f-date').value = todayISO();
     document.getElementById('f-num').value = "";
     document.getElementById('f-addr').value = "";
@@ -741,11 +833,13 @@
     typoSelect.value = "";
     document.querySelectorAll('#f-statut button, #f-op button, #f-solo button')
       .forEach(function(b){ b.classList.remove('selected'); });
+    document.getElementById('wrap-tech-solo').style.display = 'none';
     updateNumHint();
     updatePreview();
   }
   document.getElementById('clearForm').addEventListener('click', resetForm);
 
+  // Sauvegarde Intervention
   document.getElementById('f-save').addEventListener('click', function(){
     var date = document.getElementById('f-date').value;
     var num = document.getElementById('f-num').value.trim();
@@ -763,16 +857,18 @@
     }
 
     var montant = computeMontant(form.typo, form.statut, form.op);
+    var techTarget = form.solo === "Solo" ? document.getElementById('f-tech-solo').value : "Binôme";
+
     var entry = {
       id: Date.now() + "-" + Math.random().toString(36).slice(2,7),
-      tech: currentTech,
       date: date, num: num, addr: addr,
       typo: form.typo, statut: form.statut, op: form.op, solo: form.solo,
+      techSolo: document.getElementById('f-tech-solo').value,
       montant: montant, comment: comment
     };
 
     entries.push(entry);
-    safeSet(STORE_KEY + "_" + currentTech, entries);
+    safeSet(STORE_KEY + "_" + currentViewTech, entries);
     renderToday();
     resetForm();
     toast("Enregistré en local");
@@ -784,17 +880,103 @@
       body: JSON.stringify(entry)
     }).then(function(){
       toast("Synchronisé sur Sheets");
-      setTimeout(loadEntries, 1200);
+      setTimeout(loadEntries, 1000);
     }).catch(function(){
       toast("Sauvegardé (hors-ligne)");
     });
   });
 
+  // --- LOGIQUE CARBURANT ---
+  var fuelTechWrap = document.getElementById('fuel-tech');
+  fuelTechWrap.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      fuelForm.tech = b.dataset.val;
+      fuelTechWrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
+      b.classList.add('selected');
+    });
+  });
+
+  document.getElementById('fuel-save').addEventListener('click', function(){
+    var date = document.getElementById('fuel-date').value;
+    var amount = parseFloat(document.getElementById('fuel-amount').value);
+    var comment = document.getElementById('fuel-comment').value.trim();
+
+    if (!date || isNaN(amount) || amount <= 0){
+      toast("Remplis la date et le montant valide");
+      return;
+    }
+
+    var item = {
+      type: "fuel",
+      date: date,
+      tech: fuelForm.tech || "Brendan",
+      montant: amount,
+      comment: comment
+    };
+
+    fuelEntries.push(item);
+    safeSet(FUEL_STORE_KEY, fuelEntries);
+    renderCarburant();
+
+    document.getElementById('fuel-amount').value = "";
+    document.getElementById('fuel-comment').value = "";
+    toast("Plein enregistré !");
+
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(item)
+    }).then(function(){
+      toast("Plein synchronisé sur Sheets");
+      setTimeout(loadFuel, 1000);
+    });
+  });
+
+  function renderCarburant(){
+    var list = document.getElementById('fuelList');
+    list.innerHTML = "";
+
+    var y = viewedMonth.getFullYear(), m = viewedMonth.getMonth();
+    var monthFuel = fuelEntries.filter(function(f){
+      var d = parseISO(f.date);
+      return d.getFullYear() === y && d.getMonth() === m;
+    });
+
+    var totMois = monthFuel.reduce(function(s,f){ return s + (f.montant||0); }, 0);
+    var totBrendan = monthFuel.filter(function(f){ return f.tech === "Brendan"; }).reduce(function(s,f){ return s + (f.montant||0); }, 0);
+    var totHamlili = monthFuel.filter(function(f){ return f.tech === "Hamlili"; }).reduce(function(s,f){ return s + (f.montant||0); }, 0);
+
+    document.getElementById('fuelMonthTotal').textContent = fmtEuro(totMois);
+    document.getElementById('fuelBrendanTotal').textContent = fmtEuro(totBrendan);
+    document.getElementById('fuelHamliliTotal').textContent = fmtEuro(totHamlili);
+
+    if (monthFuel.length === 0){
+      list.innerHTML = '<div class="empty">Aucun plein de carburant ce mois-ci.</div>';
+      return;
+    }
+
+    monthFuel.slice().reverse().forEach(function(f){
+      var div = document.createElement('div');
+      div.className = 'entry';
+      div.style.padding = '10px 12px';
+      div.innerHTML = 
+        '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+          '<div>' +
+            '<strong>' + fmtDateFR(f.date) + '</strong> · <span class="tag neutral">' + escapeHtml(f.tech) + '</span>' +
+            (f.comment ? '<div style="font-size:11px; color:var(--ink-muted); margin-top:2px;">💬 ' + escapeHtml(f.comment) + '</div>' : '') +
+          '</div>' +
+          '<div style="font-family:var(--font-mono); font-weight:700; color:var(--danger);">' + fmtEuro(f.montant) + '</div>' +
+        '</div>';
+      list.appendChild(div);
+    });
+  }
+
   function deleteEntry(id, num){
     if(!confirm("Supprimer cette intervention ?")) return;
     
     entries = entries.filter(function(e){ return e.id !== id && e.num !== num; });
-    safeSet(STORE_KEY + "_" + currentTech, entries);
+    safeSet(STORE_KEY + "_" + currentViewTech, entries);
     renderToday();
     renderHistorique();
     toast("Supprimé en local");
@@ -803,7 +985,7 @@
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: "delete", id: id, num: num, tech: currentTech })
+      body: JSON.stringify({ action: "delete", id: id, num: num })
     });
   }
 
@@ -883,10 +1065,12 @@
   document.getElementById('prevMonth').addEventListener('click', function(){
     viewedMonth.setMonth(viewedMonth.getMonth() - 1);
     renderHistorique();
+    renderCarburant();
   });
   document.getElementById('nextMonth').addEventListener('click', function(){
     viewedMonth.setMonth(viewedMonth.getMonth() + 1);
     renderHistorique();
+    renderCarburant();
   });
 
   var searchInput = document.getElementById('histSearch');
@@ -1003,7 +1187,7 @@
     var ws = XLSX.utils.json_to_sheet(rows);
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Interventions");
-    XLSX.writeFile(wb, "Raccordements_" + currentTech + "_" + currentMonthLabel + ".xlsx");
+    XLSX.writeFile(wb, "Raccordements_" + currentViewTech + "_" + currentMonthLabel + ".xlsx");
   });
 
   function renderTarifs(){
@@ -1036,8 +1220,8 @@
   }
 
   document.getElementById('wipeAll').addEventListener('click', function(){
-    if (confirm("Réinitialiser les données locales (" + currentTech + ") ?")){
-      localStorage.removeItem(STORE_KEY + "_" + currentTech);
+    if (confirm("Réinitialiser les données locales (" + currentViewTech + ") ?")){
+      localStorage.removeItem(STORE_KEY + "_" + currentViewTech);
       entries = [];
       renderToday();
       renderHistorique();
