@@ -97,7 +97,7 @@
     color: var(--ink);
     outline: none;
   }
-  .field input:focus, .field select:focus {
+  .field input:focus, .field select:focus, .field textarea:focus {
     border-color: var(--accent-text);
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
   }
@@ -213,7 +213,7 @@
     vertical-align: middle;
   }
   table.custom-table tr:last-child td { border-bottom: none; }
-  table.custom-table tr:hover { background: rgba(255, 255, 255, 0.03); cursor: pointer; }
+  table.custom-table tr:hover { background: rgba(255, 255, 255, 0.05); cursor: pointer; }
 
   .badge-statut { font-size: 14px; }
   .badge-typo {
@@ -518,41 +518,52 @@
 
 </main>
 
+<!-- MODALE D'ÉDITION -->
 <div class="modal-overlay" id="detailModal">
   <div class="modal-card">
     <div class="modal-header">
-      <div class="modal-title" id="modalTitle">Réf</div>
+      <div class="modal-title" id="modalTitle">Modifier l'intervention</div>
       <button class="btn-ghost" id="closeModal">✕ Fermer</button>
     </div>
     <div class="field">
-      <label>Date :</label>
+      <label for="m-date">Date :</label>
       <input type="date" id="m-date">
     </div>
     <div class="field">
-      <label>Ref intervention :</label>
+      <label for="m-num">N° Ref :</label>
       <input type="text" id="m-num">
     </div>
     <div class="field">
-      <label>Adresse :</label>
+      <label for="m-addr">Adresse client :</label>
       <input type="text" id="m-addr" placeholder="Adresse client">
     </div>
     <div class="field">
-      <label>Technicien :</label>
-      <input type="text" id="m-planning">
+      <label>Opérateur :</label>
+      <div class="seg" id="m-op-seg">
+        <button data-val="Orange">Orange</button>
+        <button data-val="SFR">SFR</button>
+      </div>
     </div>
     <div class="field">
-      <label>Typologie :</label>
+      <label for="m-typo">Typologie :</label>
       <select id="m-typo"></select>
     </div>
     <div class="field">
-      <label>Statut :</label>
+      <label>Résultat :</label>
       <div class="seg" id="m-statut-seg">
         <button data-val="Réussite" class="ok">👍 Succès</button>
         <button data-val="Échec" class="bad">❌ Échec</button>
       </div>
     </div>
     <div class="field">
-      <label>Commentaires :</label>
+      <label for="m-tech-solo">Technicien :</label>
+      <select id="m-tech-solo">
+        <option value="Brendan">Brendan</option>
+        <option value="Hamlili">Hamlili</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="m-comment">Commentaires :</label>
       <textarea id="m-comment" rows="2"></textarea>
     </div>
     <div style="display:flex; gap:8px; margin-top:14px;">
@@ -593,6 +604,7 @@
   var STORE_KEY = "raccordements_entries_v8";
   var FUEL_STORE_KEY = "raccordements_fuel_v8";
   var TARIFF_KEY = "raccordements_tarifs_v8";
+  var DELETED_KEY = "raccordements_deleted_v8";
 
   var DEFAULT_TARIFFS = {
     "Aérien": {Orange: 160.00, SFR: 140.00},
@@ -629,8 +641,11 @@
   var entries = safeGet(STORE_KEY + "_" + currentViewTech, []);
   var fuelEntries = safeGet(FUEL_STORE_KEY, []);
   var tariffs = safeGet(TARIFF_KEY, DEFAULT_TARIFFS);
+  var deletedEntries = safeGet(DELETED_KEY, []);
 
   var form = { typo: "", statut: "Réussite", op: "Orange", solo: "Solo", techSolo: "Brendan" };
+  var modalForm = { op: "Orange", statut: "Réussite" };
+  var currentEditingId = null;
   var viewedMonth = new Date();
 
   function fmtEuro(n){
@@ -693,7 +708,6 @@
     return day + "/" + m + "/" + d.getFullYear();
   }
 
-  // Obtenir la plage de dates pour la semaine courante (du Lundi au Dimanche)
   function getWeekRange(refDate) {
     var d = refDate ? new Date(refDate) : new Date();
     var day = d.getDay();
@@ -711,7 +725,6 @@
     });
   }
 
-  // Calcul du taux de réussite avec ratio et pourcentage
   function formatSuccessRate(entryList) {
     var total = entryList.length;
     var success = 0;
@@ -749,7 +762,12 @@
       .then(function(data){
         if (Array.isArray(data)){
           var map = {};
-          data.forEach(function(e){ map[e.num || e.id] = e; });
+          data.forEach(function(e){
+            var eid = e.id || e.num;
+            if (deletedEntries.indexOf(eid) === -1 && deletedEntries.indexOf(e.num) === -1) {
+              map[eid] = e;
+            }
+          });
           entries = sortByDateAsc(Object.values(map));
           safeSet(STORE_KEY + "_" + currentViewTech, entries);
           renderHistorique();
@@ -787,10 +805,17 @@
   });
 
   var typoSelect = document.getElementById('f-typo');
+  var mTypoSelect = document.getElementById('m-typo');
   TYPOS.forEach(function(t){
     var opt = document.createElement('option');
     opt.value = t; opt.textContent = t;
     typoSelect.appendChild(opt);
+
+    if (mTypoSelect) {
+      var optM = document.createElement('option');
+      optM.value = t; optM.textContent = t;
+      mTypoSelect.appendChild(optM);
+    }
   });
   typoSelect.addEventListener('change', function(){ form.typo = typoSelect.value; updatePreview(); });
 
@@ -821,6 +846,9 @@
   wireSeg('f-solo', 'solo', function(v){
     document.getElementById('wrap-tech-solo').style.display = (v === 'Solo') ? 'block' : 'none';
   });
+
+  wireSeg('m-statut-seg', null, function(v){ modalForm.statut = v; });
+  wireSeg('m-op-seg', null, function(v){ modalForm.op = v; });
 
   var fuelTechWrap = document.getElementById('fuel-tech');
   if (fuelTechWrap) {
@@ -1020,13 +1048,107 @@
     return sortByDateAsc(monthEntries);
   }
 
+  function openEditModal(entry) {
+    currentEditingId = entry.id || entry.num;
+    document.getElementById('modalTitle').textContent = "Intervention " + (entry.num || "");
+    document.getElementById('m-date').value = toISODate(entry.date);
+    document.getElementById('m-num').value = entry.num || "";
+    document.getElementById('m-addr').value = entry.addr || "";
+    document.getElementById('m-comment').value = entry.comment || "";
+    document.getElementById('m-typo').value = entry.typo || TYPOS[0];
+    document.getElementById('m-tech-solo').value = entry.techSolo || currentViewTech;
+
+    modalForm.op = entry.op || "Orange";
+    modalForm.statut = entry.statut || "Réussite";
+
+    var opSeg = document.getElementById('m-op-seg');
+    if (opSeg) {
+      opSeg.querySelectorAll('button').forEach(function(btn){
+        btn.classList.toggle('selected', btn.dataset.val === modalForm.op);
+      });
+    }
+
+    var statutSeg = document.getElementById('m-statut-seg');
+    if (statutSeg) {
+      statutSeg.querySelectorAll('button').forEach(function(btn){
+        btn.classList.toggle('selected', btn.dataset.val === modalForm.statut);
+      });
+    }
+
+    document.getElementById('detailModal').classList.add('active');
+  }
+
+  function closeModal() {
+    document.getElementById('detailModal').classList.remove('active');
+    currentEditingId = null;
+  }
+
+  document.getElementById('closeModal').addEventListener('click', closeModal);
+  document.getElementById('detailModal').addEventListener('click', function(e){
+    if (e.target === this) closeModal();
+  });
+
+  document.getElementById('m-save-btn').addEventListener('click', function(){
+    if (!currentEditingId) return;
+
+    var date = document.getElementById('m-date').value;
+    var num = document.getElementById('m-num').value.trim();
+    var addr = document.getElementById('m-addr').value.trim();
+    var typo = document.getElementById('m-typo').value;
+    var comment = document.getElementById('m-comment').value.trim();
+    var techSolo = document.getElementById('m-tech-solo').value;
+
+    if (!date || !num || !typo) {
+      toast("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    var cleanNum = num.replace(/\s+/g, '');
+    var montant = computeMontant(typo, modalForm.statut, modalForm.op);
+
+    var idx = entries.findIndex(function(e){ return (e.id || e.num) === currentEditingId || e.num === currentEditingId; });
+    if (idx !== -1) {
+      entries[idx].date = date;
+      entries[idx].num = cleanNum;
+      entries[idx].addr = addr;
+      entries[idx].typo = typo;
+      entries[idx].op = modalForm.op;
+      entries[idx].statut = modalForm.statut;
+      entries[idx].comment = comment;
+      entries[idx].techSolo = techSolo;
+      entries[idx].montant = montant;
+
+      var updatedEntry = Object.assign({ action: "update", tech: currentViewTech }, entries[idx]);
+
+      entries = sortByDateAsc(entries);
+      safeSet(STORE_KEY + "_" + currentViewTech, entries);
+      renderHistorique();
+
+      if (SCRIPT_URL) {
+        fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify(updatedEntry)
+        });
+      }
+
+      toast("✅ Intervention mise à jour !");
+      closeModal();
+    }
+  });
+
+  document.getElementById('m-del-btn').addEventListener('click', function(){
+    if (currentEditingId) {
+      deleteEntry(currentEditingId);
+      closeModal();
+    }
+  });
+
   function renderHistorique(){
     var y = viewedMonth.getFullYear(), m = viewedMonth.getMonth();
     document.getElementById('monthLabel').textContent = MOIS_FR[m] + " " + y;
 
-    // --- MISE À JOUR DES STATISTIQUES DE RÉUSSITE ---
-    
-    // 1. Stats pour le Mois sélectionné
     var allMonthEntries = entries.filter(function(e){
       var d = parseISO(e.date);
       return d.getFullYear() === y && d.getMonth() === m;
@@ -1041,7 +1163,6 @@
     document.getElementById('stat-month-orange').textContent = monthOrange.shortText;
     document.getElementById('stat-month-sfr').textContent = monthSFR.shortText;
 
-    // 2. Stats pour la Semaine en cours
     var allWeekEntries = getWeekEntries(entries);
     var weekGlobal = formatSuccessRate(allWeekEntries);
     var weekOrange = formatSuccessRate(allWeekEntries.filter(function(e){ return e.op === "Orange"; }));
@@ -1051,8 +1172,6 @@
     document.getElementById('stat-week-global').textContent = weekGlobal.fullText;
     document.getElementById('stat-week-orange').textContent = weekOrange.shortText;
     document.getElementById('stat-week-sfr').textContent = weekSFR.shortText;
-
-    // --- FIN DU CALCUL DES STATISTIQUES ---
 
     var monthEntries = getFilteredMonthEntries();
 
@@ -1093,6 +1212,10 @@
         '<td class="tarif-val" style="color:#EF4444;">' + sfrVal + '</td>' +
         '<td><button class="btn-ghost btn-del-entry" style="color:var(--danger); border-color:var(--danger); padding:2px 6px; font-size:11px;">✕</button></td>';
 
+      tr.addEventListener('click', function(){
+        openEditModal(e);
+      });
+
       tr.querySelector('.btn-del-entry').addEventListener('click', function(evt){
         evt.stopPropagation();
         deleteEntry(e.id || e.num);
@@ -1104,10 +1227,35 @@
 
   function deleteEntry(id) {
     if (!confirm("Supprimer cette intervention ?")) return;
-    entries = entries.filter(function(e){ return (e.id || e.num) !== id; });
+
+    if (deletedEntries.indexOf(id) === -1) {
+      deletedEntries.push(id);
+    }
+
+    var targetEntry = entries.find(function(e){ return (e.id || e.num) === id; });
+    if (targetEntry && targetEntry.num && deletedEntries.indexOf(targetEntry.num) === -1) {
+      deletedEntries.push(targetEntry.num);
+    }
+    safeSet(DELETED_KEY, deletedEntries);
+
+    entries = entries.filter(function(e){ return (e.id || e.num) !== id && e.num !== id; });
     safeSet(STORE_KEY + "_" + currentViewTech, entries);
     renderHistorique();
-    toast("Intervention supprimée");
+    toast("🗑️ Intervention supprimée");
+
+    if (SCRIPT_URL) {
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: "delete",
+          id: id,
+          num: targetEntry ? targetEntry.num : id,
+          tech: currentViewTech
+        })
+      });
+    }
   }
 
   function renderTarifs(){
@@ -1143,7 +1291,31 @@
   document.getElementById('histSearch').addEventListener('input', function(){ renderHistorique(); });
   document.getElementById('reloadBtn').addEventListener('click', function(){ loadEntries(); });
 
-  // Initialisation
+  document.getElementById('exportXlsx').addEventListener('click', function(){
+    var monthEntries = getFilteredMonthEntries();
+    if (monthEntries.length === 0) {
+      toast("Aucune donnée à exporter");
+      return;
+    }
+    var exportData = monthEntries.map(function(e){
+      return {
+        "Date": fmtDateFR(e.date),
+        "N° Ref": e.num,
+        "Opérateur": e.op,
+        "Typologie": e.typo,
+        "Statut": e.statut,
+        "Montant (€)": e.montant,
+        "Adresse": e.addr || "",
+        "Commentaire": e.comment || ""
+      };
+    });
+    var ws = XLSX.utils.json_to_sheet(exportData);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Interventions");
+    var filename = "Interventions_" + currentViewTech + "_" + (viewedMonth.getMonth()+1) + "_" + viewedMonth.getFullYear() + ".xlsx";
+    XLSX.writeFile(wb, filename);
+  });
+
   loadEntries();
 
 })();
