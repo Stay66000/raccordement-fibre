@@ -626,4 +626,395 @@
     return d.getFullYear() + "-" + m + "-" + day;
   }
 
-  function fmtDateFR(date
+  function fmtDateFR(dateVal) {
+    var d = parseISO(dateVal);
+    var day = String(d.getDate()).padStart(2, '0');
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    return day + "/" + m + "/" + d.getFullYear();
+  }
+
+  function toast(msg){
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(function(){ el.classList.remove('show'); }, 2200);
+  }
+
+  function loadEntries(){
+    renderHistorique();
+    if (!SCRIPT_URL) return;
+    toast("Synchro (" + currentViewTech + ")...");
+
+    var url = SCRIPT_URL + "?tech=" + encodeURIComponent(currentViewTech) + "&_t=" + Date.now();
+    fetch(url, { cache: "no-store" })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (Array.isArray(data)){
+          var map = {};
+          data.forEach(function(e){ map[e.num || e.id] = e; });
+          entries = sortByDateDesc(Object.values(map));
+          safeSet(STORE_KEY + "_" + currentViewTech, entries);
+          renderHistorique();
+          toast("À jour (" + currentViewTech + ")");
+        }
+      })
+      .catch(function(){ toast("Mode local (hors-ligne)"); });
+  }
+  window.loadEntries = loadEntries;
+
+  function loadFuel(){
+    renderCarburant();
+    if (!SCRIPT_URL) return;
+    fetch(SCRIPT_URL + "?type=fuel&_t=" + Date.now(), { cache: "no-store" })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (Array.isArray(data)){
+          fuelEntries = sortByDateDesc(data);
+          safeSet(FUEL_STORE_KEY, fuelEntries);
+          renderCarburant();
+        }
+      });
+  }
+  window.loadFuel = loadFuel;
+
+  // Gestion des onglets
+  document.querySelectorAll('.tabbar button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.tabbar button').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var v = btn.getAttribute('data-view');
+      document.querySelectorAll('.view').forEach(function(s){ s.classList.remove('active'); });
+      document.getElementById('view-' + v).classList.add('active');
+      if (v === 'carburant') loadFuel();
+      if (v === 'historique') renderHistorique();
+      if (v === 'tarifs') renderTarifs();
+    });
+  });
+
+  // Remplissage Typologies
+  var typoSelect = document.getElementById('f-typo');
+  TYPOS.forEach(function(t){
+    var opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    typoSelect.appendChild(opt);
+  });
+  typoSelect.addEventListener('change', function(){ form.typo = typoSelect.value; updatePreview(); });
+
+  function updateOpPlaceholder(opVal){
+    var input = document.getElementById('f-num');
+    if (opVal === "Orange") {
+      input.placeholder = "Ex : 0468934875";
+    } else {
+      input.placeholder = "Ex : 133627482";
+    }
+  }
+
+  function wireSeg(id, key, callback){
+    var wrap = document.getElementById(id);
+    wrap.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', function(){
+        form[key] = b.dataset.val;
+        wrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
+        b.classList.add('selected');
+        if (callback) callback(b.dataset.val);
+        updatePreview();
+      });
+    });
+  }
+  wireSeg('f-statut', 'statut');
+  wireSeg('f-op', 'op', function(v){
+    updateOpPlaceholder(v);
+  });
+  wireSeg('f-solo', 'solo', function(v){
+    document.getElementById('wrap-tech-solo').style.display = (v === 'Solo') ? 'block' : 'none';
+  });
+
+  function computeMontant(typo, statut, op){
+    if (!typo || statut === "Échec") return 0;
+    var row = tariffs[typo];
+    if (!row) return 0;
+    var v = (op === "Orange") ? row.Orange : row.SFR;
+    return v || 0;
+  }
+
+  function updatePreview(){
+    var m = computeMontant(form.typo, form.statut, form.op);
+    document.getElementById('f-preview').textContent = fmtEuro(m);
+  }
+
+  document.getElementById('f-date').value = toISODate(new Date());
+  document.getElementById('fuel-date').value = toISODate(new Date());
+
+  // Enregistrement de l'intervention
+  document.getElementById('f-save').addEventListener('click', function(){
+    var date = document.getElementById('f-date').value;
+    var num = document.getElementById('f-num').value.trim();
+    var zone = document.getElementById('f-zone').value.trim();
+    var addr = document.getElementById('f-addr').value.trim();
+    var comment = document.getElementById('f-comment').value.trim();
+
+    if (!date || !num || !form.typo){
+      toast("Complète les champs requis");
+      return;
+    }
+
+    var montant = computeMontant(form.typo, form.statut, form.op);
+
+    var entry = {
+      id: "INT-" + Math.floor(10000 + Math.random() * 90000),
+      num: num,
+      date: date,
+      zone: zone || "66",
+      addr: addr,
+      typo: form.typo,
+      statut: form.statut,
+      op: form.op,
+      solo: form.solo,
+      techSolo: document.getElementById('f-tech-solo').value,
+      montant: montant,
+      comment: comment
+    };
+
+    entries.push(entry);
+    entries = sortByDateDesc(entries);
+    safeSet(STORE_KEY + "_" + currentViewTech, entries);
+    renderHistorique();
+    toast("Intervention ajoutée !");
+
+    if (SCRIPT_URL) {
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(entry)
+      });
+    }
+  });
+
+  // Carburant Saisie & Suppression
+  document.getElementById('fuel-save').addEventListener('click', function(){
+    var date = document.getElementById('fuel-date').value;
+    var amount = parseFloat(document.getElementById('fuel-amount').value);
+    var comment = document.getElementById('fuel-comment').value.trim();
+
+    if (!date || isNaN(amount) || amount <= 0) {
+      toast("Saisis un montant valide");
+      return;
+    }
+
+    var fuelEntry = {
+      id: "FUEL-" + Date.now(),
+      date: date,
+      montant: amount,
+      tech: currentViewTech,
+      comment: comment
+    };
+
+    fuelEntries.push(fuelEntry);
+    fuelEntries = sortByDateDesc(fuelEntries);
+    safeSet(FUEL_STORE_KEY, fuelEntries);
+    renderCarburant();
+    document.getElementById('fuel-amount').value = "";
+    document.getElementById('fuel-comment').value = "";
+    toast("Plein enregistré !");
+
+    if (SCRIPT_URL) {
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(Object.assign({ type: "fuel" }, fuelEntry))
+      });
+    }
+  });
+
+  function deleteFuel(id) {
+    if (!confirm("Supprimer ce plein d'essence ?")) return;
+    fuelEntries = fuelEntries.filter(function(f){ return (f.id || f.date + f.montant) !== id; });
+    safeSet(FUEL_STORE_KEY, fuelEntries);
+    renderCarburant();
+    toast("Plein supprimé");
+  }
+
+  function renderCarburant(){
+    var list = document.getElementById('fuelList');
+    list.innerHTML = "";
+    var y = viewedMonth.getFullYear(), m = viewedMonth.getMonth();
+    var monthFuel = fuelEntries.filter(function(f){
+      var d = parseISO(f.date);
+      return d.getFullYear() === y && d.getMonth() === m;
+    });
+
+    var totMois = monthFuel.reduce(function(s,f){ return s + (f.montant||0); }, 0);
+    document.getElementById('fuelMonthTotal').textContent = "Total Mois : " + fmtEuro(totMois);
+
+    if (monthFuel.length === 0){
+      list.innerHTML = '<div style="color:var(--ink-muted); text-align:center; padding:20px;">Aucun plein enregistré.</div>';
+      return;
+    }
+
+    monthFuel.forEach(function(f, idx){
+      var fid = f.id || (f.date + "_" + f.montant + "_" + idx);
+      var div = document.createElement('div');
+      div.className = 'card';
+      div.style.display = 'flex';
+      div.style.justifyContent = 'space-between';
+      div.style.alignItems = 'center';
+      div.innerHTML = 
+        '<div>' +
+          '<strong>' + fmtDateFR(f.date) + '</strong>' +
+          (f.comment ? '<div style="font-size:11px; color:var(--ink-muted);">' + escapeHtml(f.comment) + '</div>' : '') +
+        '</div>' +
+        '<div style="display:flex; align-items:center; gap:10px;">' +
+          '<span style="font-family:var(--font-mono); color:var(--danger); font-weight:700;">' + fmtEuro(f.montant) + '</span>' +
+          '<button class="btn-ghost btn-del-fuel" data-fid="' + fid + '" style="color:var(--danger); border-color:rgba(239, 68, 68, 0.4); padding:2px 8px; font-size:12px;">✕</button>' +
+        '</div>';
+
+      div.querySelector('.btn-del-fuel').addEventListener('click', function(){
+        deleteFuel(fid);
+      });
+      list.appendChild(div);
+    });
+  }
+
+  // Affichage Historique
+  var MOIS_FR = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+
+  function renderHistorique(){
+    var y = viewedMonth.getFullYear(), m = viewedMonth.getMonth();
+    document.getElementById('monthLabel').textContent = MOIS_FR[m] + " " + y;
+
+    var monthEntries = entries.filter(function(e){
+      var d = parseISO(e.date);
+      return d.getFullYear() === y && d.getMonth() === m;
+    });
+
+    var q = document.getElementById('histSearch').value.trim().toLowerCase();
+    if (q) {
+      monthEntries = monthEntries.filter(function(e){
+        return (e.num + " " + (e.comment||"") + " " + e.typo + " " + e.op).toLowerCase().indexOf(q) !== -1;
+      });
+    }
+
+    monthEntries = sortByDateDesc(monthEntries);
+
+    var totMois = monthEntries.reduce(function(s,e){ return s + (e.montant||0); }, 0);
+    document.getElementById('totalGlobalBadge').textContent = MOIS_FR[m] + " : " + fmtEuro(totMois);
+
+    var tbody = document.getElementById('speedTableBody');
+    tbody.innerHTML = "";
+
+    if (monthEntries.length === 0){
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--ink-muted); padding:20px;">Aucune intervention trouvée.</td></tr>';
+      return;
+    }
+
+    monthEntries.forEach(function(e){
+      var tr = document.createElement('tr');
+      var iconStatut = e.statut === "Réussite" ? "👍" : "❌";
+
+      tr.innerHTML = 
+        '<td><span style="font-family:var(--font-mono); font-weight:700; color:var(--accent-text);">' + escapeHtml(e.num) + '</span></td>' +
+        '<td class="badge-statut">' + iconStatut + '</td>' +
+        '<td><span class="badge-typo">' + escapeHtml(e.typo) + '</span></td>' +
+        '<td>' + escapeHtml(e.zone || "66") + '</td>' +
+        '<td><span class="badge-op">' + escapeHtml(e.op) + '</span></td>' +
+        '<td class="tarif-val">' + fmtEuro(e.montant) + '</td>' +
+        '<td><button class="btn-ghost" style="padding:2px 6px;">✏️</button></td>';
+
+      tr.addEventListener('click', function(){ openModal(e); });
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Modal de détail / édition
+  function openModal(e){
+    selectedModalEntry = e;
+    document.getElementById('modalTitle').textContent = "Réf : " + escapeHtml(e.num);
+    document.getElementById('m-zone').value = e.zone || "66";
+    document.getElementById('m-date').value = fmtDateFR(e.date);
+    document.getElementById('m-num').value = e.num;
+    document.getElementById('m-planning').value = e.techSolo || currentViewTech;
+    document.getElementById('m-typo').value = e.typo;
+    document.getElementById('m-comment').value = e.comment || "";
+
+    var seg = document.getElementById('m-statut-seg');
+    seg.querySelectorAll('button').forEach(function(b){
+      b.classList.toggle('selected', b.dataset.val === e.statut);
+    });
+
+    document.getElementById('detailModal').classList.add('active');
+  }
+
+  document.getElementById('closeModal').addEventListener('click', function(){
+    document.getElementById('detailModal').classList.remove('active');
+  });
+
+  document.getElementById('m-save-btn').addEventListener('click', function(){
+    if (!selectedModalEntry) return;
+    selectedModalEntry.zone = document.getElementById('m-zone').value;
+    selectedModalEntry.num = document.getElementById('m-num').value;
+    selectedModalEntry.typo = document.getElementById('m-typo').value;
+    selectedModalEntry.comment = document.getElementById('m-comment').value;
+
+    safeSet(STORE_KEY + "_" + currentViewTech, entries);
+    renderHistorique();
+    document.getElementById('detailModal').classList.remove('active');
+    toast("Mise à jour enregistrée");
+  });
+
+  document.getElementById('m-del-btn').addEventListener('click', function(){
+    if (!selectedModalEntry || !confirm("Supprimer cette intervention ?")) return;
+    entries = entries.filter(function(x){ return x !== selectedModalEntry; });
+    safeSet(STORE_KEY + "_" + currentViewTech, entries);
+    renderHistorique();
+    document.getElementById('detailModal').classList.remove('active');
+    toast("Intervention supprimée");
+  });
+
+  document.getElementById('hist-tech-select').querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      currentViewTech = b.dataset.val;
+      document.getElementById('hist-tech-select').querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
+      b.classList.add('selected');
+      entries = sortByDateDesc(safeGet(STORE_KEY + "_" + currentViewTech, []));
+      loadEntries();
+    });
+  });
+
+  document.getElementById('prevMonth').addEventListener('click', function(){ viewedMonth.setMonth(viewedMonth.getMonth() - 1); renderHistorique(); });
+  document.getElementById('nextMonth').addEventListener('click', function(){ viewedMonth.setMonth(viewedMonth.getMonth() + 1); renderHistorique(); });
+  document.getElementById('histSearch').addEventListener('input', renderHistorique);
+  document.getElementById('reloadBtn').addEventListener('click', loadEntries);
+
+  function renderTarifs(){
+    var tbody = document.getElementById('tariffRows');
+    tbody.innerHTML = "";
+    TYPOS.forEach(function(t){
+      var tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid var(--border)';
+      var tOrg = tariffs[t] ? tariffs[t].Orange : 0;
+      var tSfr = tariffs[t] ? tariffs[t].SFR : 0;
+      tr.innerHTML = 
+        '<td style="padding:8px;"><strong>' + escapeHtml(t) + '</strong></td>' +
+        '<td style="padding:8px;"><input type="number" step="0.01" style="width:70px; padding:4px; border:1px solid var(--border); border-radius:4px; background:var(--surface-alt); color:#FFF;" value="' + tOrg + '"></td>' +
+        '<td style="padding:8px;"><input type="number" step="0.01" style="width:70px; padding:4px; border:1px solid var(--border); border-radius:4px; background:var(--surface-alt); color:#FFF;" value="' + tSfr + '"></td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s || '').replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function(){
+    updateOpPlaceholder("Orange");
+    loadEntries();
+  });
+
+})();
+</script>
+</body>
+</html>
