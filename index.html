@@ -645,33 +645,57 @@
     if (n === null || n === undefined || isNaN(n)) n = 0;
     return n.toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + " €";
   }
+
   function todayISO(){
     var d = new Date();
     return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
   }
-  function fmtDateFR(iso){
-    if (!iso) return "";
-    var p = iso.split("-");
-    return p[2] + "/" + p[1] + "/" + p[0];
+
+  // Analyseur de Date Universel (corrige le bug undefined/undefined)
+  function parseISO(dateVal) {
+    if (!dateVal) return new Date();
+    if (dateVal instanceof Date) return dateVal;
+    if (typeof dateVal === "string") {
+      var s = dateVal.trim();
+      if (s.indexOf('-') !== -1 && s.indexOf(' ') === -1 && s.indexOf('GMT') === -1) {
+        var p = s.split('T')[0].split('-');
+        if (p.length === 3) {
+          return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        }
+      }
+      if (s.indexOf('/') !== -1) {
+        var p = s.split('/');
+        if (p.length === 3) {
+          return new Date(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10));
+        }
+      }
+    }
+    var d = new Date(dateVal);
+    return isNaN(d.getTime()) ? new Date() : d;
   }
+
+  function toISODate(dateVal) {
+    var d = parseISO(dateVal);
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + "-" + m + "-" + day;
+  }
+
+  function fmtDateFR(dateVal) {
+    if (!dateVal) return "";
+    var d = parseISO(dateVal);
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return day + "/" + m + "/" + y;
+  }
+
   function toast(msg){
     var el = document.getElementById('toast');
     el.textContent = msg;
     el.classList.add('show');
     setTimeout(function(){ el.classList.remove('show'); }, 2200);
-  }
-
-  function parseISO(dateStr) {
-    if (!dateStr) return new Date();
-    if (typeof dateStr === "string" && dateStr.indexOf('-') !== -1) {
-      var p = dateStr.split('T')[0].split('-');
-      return new Date(parseInt(p[0],10), parseInt(p[1],10) - 1, parseInt(p[2],10));
-    }
-    if (typeof dateStr === "string" && dateStr.indexOf('/') !== -1) {
-      var p = dateStr.split('/');
-      return new Date(parseInt(p[2],10), parseInt(p[1],10) - 1, parseInt(p[0],10));
-    }
-    return new Date(dateStr);
   }
 
   function loadEntries(){
@@ -681,8 +705,8 @@
     if (!SCRIPT_URL) return;
     toast("Synchro (" + currentViewTech + ")...");
     
-    var url = SCRIPT_URL + "?tech=" + encodeURIComponent(currentViewTech);
-    fetch(url)
+    var url = SCRIPT_URL + "?tech=" + encodeURIComponent(currentViewTech) + "&_t=" + Date.now();
+    fetch(url, { cache: "no-store" })
       .then(function(r){ return r.json(); })
       .then(function(data){
         if (Array.isArray(data)){
@@ -702,7 +726,8 @@
   function loadFuel(){
     renderCarburant();
     if (!SCRIPT_URL) return;
-    fetch(SCRIPT_URL + "?type=fuel")
+    var url = SCRIPT_URL + "?type=fuel&_t=" + Date.now();
+    fetch(url, { cache: "no-store" })
       .then(function(r){ return r.json(); })
       .then(function(data){
         if (Array.isArray(data)){
@@ -857,7 +882,6 @@
     }
 
     var montant = computeMontant(form.typo, form.statut, form.op);
-    var techTarget = form.solo === "Solo" ? document.getElementById('f-tech-solo').value : "Binôme";
 
     var entry = {
       id: Date.now() + "-" + Math.random().toString(36).slice(2,7),
@@ -886,7 +910,7 @@
     });
   });
 
-  // --- LOGIQUE CARBURANT ---
+  // LOGIQUE CARBURANT
   var fuelTechWrap = document.getElementById('fuel-tech');
   fuelTechWrap.querySelectorAll('button').forEach(function(b){
     b.addEventListener('click', function(){
@@ -960,6 +984,7 @@
       var div = document.createElement('div');
       div.className = 'entry';
       div.style.padding = '10px 12px';
+      div.style.marginBottom = '6px';
       div.innerHTML = 
         '<div style="display:flex; justify-content:space-between; align-items:center;">' +
           '<div>' +
@@ -1044,7 +1069,7 @@
 
   function renderToday(){
     var today = todayISO();
-    var todays = entries.filter(function(e){ return e.date === today; });
+    var todays = entries.filter(function(e){ return toISODate(e.date) === today; });
     var total = todays.reduce(function(s,e){ return s + (e.montant||0); }, 0);
     document.getElementById('todayTotal').textContent = fmtEuro(total);
     document.getElementById('todayCount').textContent = todays.length + (todays.length > 1 ? " interventions" : " intervention");
@@ -1096,7 +1121,10 @@
       return str.indexOf(q) !== -1;
     });
 
-    currentMonthEntries = monthEntries.slice().sort(function(a,b){ return a.date < b.date ? -1 : (a.date > b.date ? 1 : 0); });
+    currentMonthEntries = monthEntries.slice().sort(function(a,b){
+      var da = toISODate(a.date), db = toISODate(b.date);
+      return da < db ? -1 : (da > db ? 1 : 0);
+    });
 
     var totGlobal = monthEntries.reduce(function(s,e){ return s + (e.montant||0); }, 0);
     var totOrange = monthEntries.filter(function(e){ return e.op === "Orange"; }).reduce(function(s,e){ return s+(e.montant||0); }, 0);
@@ -1123,12 +1151,13 @@
 
     var byDay = {};
     filteredEntries.forEach(function(en){
-      if (!byDay[en.date]) byDay[en.date] = [];
-      byDay[en.date].push(en);
+      var isoKey = toISODate(en.date);
+      if (!byDay[isoKey]) byDay[isoKey] = [];
+      byDay[isoKey].push(en);
     });
 
-    Object.keys(byDay).sort().reverse().forEach(function(date){
-      var dayItems = byDay[date];
+    Object.keys(byDay).sort().reverse().forEach(function(dateIso){
+      var dayItems = byDay[dateIso];
       var dayTot = dayItems.reduce(function(s,e){ return s + (e.montant||0); }, 0);
 
       var group = document.createElement('div');
@@ -1136,7 +1165,7 @@
 
       var header = document.createElement('div');
       header.className = 'daygroup-header';
-      header.innerHTML = '<h3>' + fmtDateFR(date) + '</h3><span class="daygroup-total">' + fmtEuro(dayTot) + '</span>';
+      header.innerHTML = '<h3>' + fmtDateFR(dateIso) + '</h3><span class="daygroup-total">' + fmtEuro(dayTot) + '</span>';
       group.appendChild(header);
 
       var dayCols = document.createElement('div');
@@ -1227,6 +1256,26 @@
       renderHistorique();
       toast("Mémoire locale réinitialisée");
     }
+  });
+
+  // Détection de retour sur l'application (Auto-Synchro)
+  document.addEventListener("visibilitychange", function() {
+    if (document.visibilityState === "visible") {
+      loadEntries();
+      if (document.getElementById('view-carburant').classList.contains('active')) {
+        loadFuel();
+      }
+    }
+  });
+
+  window.addEventListener("focus", function() {
+    loadEntries();
+  });
+
+  document.querySelector('header.top').style.cursor = 'pointer';
+  document.querySelector('header.top').addEventListener('click', function(){
+    loadEntries();
+    loadFuel();
   });
 
   document.addEventListener("DOMContentLoaded", function(){
