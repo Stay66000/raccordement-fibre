@@ -1,4 +1,4 @@
-:<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -535,36 +535,7 @@
 (function(){
   "use strict";
 
-  var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUZ8Va_VV_J15W6gH26Xxq_MimoGbLfU_6cUUfxHhiRMqOMnBghSyWpkAx90zRtk1q/exec";
-var entries = [];
-
-  // 2. Fonction pour charger les données depuis Google Sheets
-  function loadEntries() {
-    console.log("Chargement des données depuis Google Sheets...");
-    
-    fetch(SCRIPT_URL)
-      .then(function(response) {
-        return response.json();
-      })
-      .then(function(data) {
-        console.log("Données reçues :", data);
-        entries = data;
-
-        // Met à jour l'affichage si les fonctions existent dans ton code
-        if (typeof renderToday === "function") renderToday();
-        if (typeof renderHistorique === "function") renderHistorique();
-      })
-      .catch(function(error) {
-        console.error("Erreur lors de la synchronisation :", error);
-      });
-  }
-
-  // 3. Lancement automatique dès que la page est chargée
-  document.addEventListener("DOMContentLoaded", function() {
-    loadEntries();
-  });
-</script>
-  
+  var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRB_bo4jwWJ_s_4JlvFS8HqM-L31lnIi4t6va66SX77ABt93y1Vr5UPUTG2-1oIhm-cg/exec";
 
   var TYPOS = ["Aérien","Souterrain","Immeuble","PLP","SAV","PLP sans client"];
   var STORE_KEY = "raccordements_entries_v2";
