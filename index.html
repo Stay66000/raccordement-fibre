@@ -233,14 +233,6 @@
     font-size: 10px;
     font-weight: 700;
   }
-  .badge-tech {
-    background: rgba(34, 197, 94, 0.15);
-    color: #4ADE80;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 700;
-  }
   .tarif-val {
     font-family: var(--font-mono);
     font-weight: 700;
@@ -396,16 +388,18 @@
         <input type="date" id="fuel-date">
       </div>
       <div class="field">
-        <label for="fuel-tech">Technicien</label>
-        <select id="fuel-tech">
-          <option value="Brendan">Brendan</option>
-          <option value="Hamlili">Hamlili</option>
-        </select>
-      </div>
-      <div class="field">
         <label for="fuel-amount">Montant Carburant (€)</label>
         <input type="number" step="0.01" id="fuel-amount" placeholder="60.00">
       </div>
+      
+      <div class="field">
+        <label>Qui a mis le carburant ?</label>
+        <div class="seg" id="fuel-tech">
+          <button data-val="Brendan" class="selected">Brendan</button>
+          <button data-val="Hamlili">Hamlili</button>
+        </div>
+      </div>
+
       <div class="field">
         <label for="fuel-comment">Station / Commentaire</label>
         <input type="text" id="fuel-comment" placeholder="Station Total Perpignan">
@@ -454,7 +448,7 @@
           </tr>
         </thead>
         <tbody id="speedTableBody">
-          </tbody>
+        </tbody>
       </table>
     </div>
 
@@ -546,18 +540,23 @@
   var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUZ8Va_VV_J15W6gH26Xxq_MimoGbLfU_6cUUfxHhiRMqOMnBghSyWpkAx90zRtk1q/exec";
 
   var TYPOS = ["Aérien", "Souterrain", "Immeuble", "PLP", "PLP sans client", "SAV"];
-  var STORE_KEY = "raccordements_entries_v8";
-  var FUEL_STORE_KEY = "raccordements_fuel_v8";
-  var TARIFF_KEY = "raccordements_tarifs_v8";
+  var STORE_KEY = "raccordements_entries_v7";
+  var FUEL_STORE_KEY = "raccordements_fuel_v7";
+  var TARIFF_KEY = "raccordements_tarifs_v7";
 
   var DEFAULT_TARIFFS = {
-    "Aérien": {Orange:160.00, SFR:140.00},
-    "Souterrain": {Orange:112.00, SFR:90.00},
-    "Immeuble": {Orange:54.40, SFR:55.00},
-    "PLP": {Orange:36.00, SFR:25.00},
-    "PLP sans client": {Orange:12.00, SFR:},
-    "SAV": {Orange:36.00, SFR:10}
+    "Aérien": {Orange:160.00, SFR:140.50},
+    "Souterrain": {Orange:112.00, SFR:85.00},
+    "Immeuble": {Orange:54.40, SFR:50.00},
+    "PLP": {Orange:36.00, SFR:25.20},
+    "PLP sans client": {Orange:12.00, SFR:12.00},
+    "SAV": {Orange:36.00, SFR:23.40}
   };
+
+  function escapeHtml(str) {
+    if (!str) return "";
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
 
   function safeGet(key, fallback){
     try {
@@ -571,6 +570,7 @@
   }
 
   var currentViewTech = "Brendan";
+  var fuelTechSelected = "Brendan"; // Technicien par défaut pour le carburant
   var entries = safeGet(STORE_KEY + "_" + currentViewTech, []);
   var fuelEntries = safeGet(FUEL_STORE_KEY, []);
   var tariffs = safeGet(TARIFF_KEY, DEFAULT_TARIFFS);
@@ -646,7 +646,6 @@
     setTimeout(function(){ el.classList.remove('show'); }, 2200);
   }
 
-  // FUSION ROBUSTE DE LA SYNCHRO (Local + Remote)
   function loadEntries(){
     renderHistorique();
     if (!SCRIPT_URL) return;
@@ -658,15 +657,8 @@
       .then(function(data){
         if (Array.isArray(data)){
           var map = {};
-          // Charger local d'abord
-          entries.forEach(function(e){ if (e.num || e.id) map[e.num || e.id] = e; });
-          // Fusionner avec le distant
-          data.forEach(function(e){ map[e.num || e.id] = Object.assign({}, map[e.num || e.id] || {}, e); });
-          
-          var keys = Object.keys(map);
-          var merged = keys.map(function(k){ return map[k]; });
-
-          entries = sortByDateDesc(merged);
+          data.forEach(function(e){ map[e.num || e.id] = e; });
+          entries = sortByDateDesc(Object.values(map));
           safeSet(STORE_KEY + "_" + currentViewTech, entries);
           renderHistorique();
           toast("À jour (" + currentViewTech + ")");
@@ -683,34 +675,13 @@
       .then(function(r){ return r.json(); })
       .then(function(data){
         if (Array.isArray(data)){
-          var map = {};
-          fuelEntries.forEach(function(f){ var key = f.id || (f.date + "_" + f.montant); map[key] = f; });
-          data.forEach(function(f){ var key = f.id || (f.date + "_" + f.montant); map[key] = Object.assign({}, map[key] || {}, f); });
-
-          var keys = Object.keys(map);
-          var merged = keys.map(function(k){ return map[k]; });
-
-          fuelEntries = sortByDateDesc(merged);
+          fuelEntries = sortByDateDesc(data);
           safeSet(FUEL_STORE_KEY, fuelEntries);
           renderCarburant();
         }
-      })
-      .catch(function(){});
+      });
   }
   window.loadFuel = loadFuel;
-
-  // Envoi asynchrone sécurisé vers Google Apps Script
-  function postToScript(payload) {
-    if (!SCRIPT_URL) return;
-    try {
-      fetch(SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(payload)
-      }).catch(function(err){ console.warn("Erreur post", err); });
-    } catch(e) {}
-  }
 
   // Navigation Onglets
   document.querySelectorAll('.tabbar button').forEach(function(btn){
@@ -746,9 +717,10 @@
 
   function wireSeg(id, key, callback){
     var wrap = document.getElementById(id);
+    if(!wrap) return;
     wrap.querySelectorAll('button').forEach(function(b){
       b.addEventListener('click', function(){
-        form[key] = b.dataset.val;
+        if(key) form[key] = b.dataset.val;
         wrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
         b.classList.add('selected');
         if (callback) callback(b.dataset.val);
@@ -763,6 +735,18 @@
   wireSeg('f-solo', 'solo', function(v){
     document.getElementById('wrap-tech-solo').style.display = (v === 'Solo') ? 'block' : 'none';
   });
+
+  // GESTION SEGMENTÉE DU CHOIX TECHNICIEN CARBURANT
+  var fuelTechWrap = document.getElementById('fuel-tech');
+  if (fuelTechWrap) {
+    fuelTechWrap.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', function(){
+        fuelTechSelected = b.dataset.val;
+        fuelTechWrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
+        b.classList.add('selected');
+      });
+    });
+  }
 
   function computeMontant(typo, statut, op){
     if (!typo || statut === "Échec") return 0;
@@ -814,13 +798,19 @@
     renderHistorique();
     toast("Intervention ajoutée !");
 
-    postToScript(entry);
+    if (SCRIPT_URL) {
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(entry)
+      });
+    }
   });
 
   // Carburant Saisie & Suppression
   document.getElementById('fuel-save').addEventListener('click', function(){
     var date = document.getElementById('fuel-date').value;
-    var tech = document.getElementById('fuel-tech').value;
     var amount = parseFloat(document.getElementById('fuel-amount').value);
     var comment = document.getElementById('fuel-comment').value.trim();
 
@@ -833,7 +823,7 @@
       id: "FUEL-" + Date.now(),
       date: date,
       montant: amount,
-      tech: tech,
+      tech: fuelTechSelected,
       comment: comment
     };
 
@@ -843,26 +833,24 @@
     renderCarburant();
     document.getElementById('fuel-amount').value = "";
     document.getElementById('fuel-comment').value = "";
-    toast("Plein de " + tech + " enregistré !");
+    toast("Plein enregistré !");
 
-    postToScript(Object.assign({ type: "fuel" }, fuelEntry));
+    if (SCRIPT_URL) {
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(Object.assign({ type: "fuel" }, fuelEntry))
+      });
+    }
   });
 
-  function deleteFuel(fid) {
+  function deleteFuel(id) {
     if (!confirm("Supprimer ce plein d'essence ?")) return;
-    var deleted = null;
-    fuelEntries = fuelEntries.filter(function(f){
-      var itemKey = f.id || (f.date + "_" + f.montant);
-      if (itemKey === fid) { deleted = f; return false; }
-      return true;
-    });
+    fuelEntries = fuelEntries.filter(function(f){ return (f.id || f.date + f.montant) !== id; });
     safeSet(FUEL_STORE_KEY, fuelEntries);
     renderCarburant();
     toast("Plein supprimé");
-
-    if (deleted) {
-      postToScript({ action: "delete", type: "fuel", id: deleted.id, date: deleted.date, montant: deleted.montant });
-    }
   }
 
   function renderCarburant(){
@@ -878,7 +866,7 @@
     document.getElementById('fuelMonthTotal').textContent = "Total Mois : " + fmtEuro(totMois);
 
     if (monthFuel.length === 0){
-      list.innerHTML = '<div style="color:var(--ink-muted); text-align:center; padding:20px;">Aucun plein enregistré ce mois-ci.</div>';
+      list.innerHTML = '<div style="color:var(--ink-muted); text-align:center; padding:20px;">Aucun plein enregistré.</div>';
       return;
     }
 
@@ -891,8 +879,9 @@
       div.style.alignItems = 'center';
       div.innerHTML = 
         '<div>' +
-          '<strong>' + fmtDateFR(f.date) + '</strong> <span class="badge-tech">' + escapeHtml(f.tech || 'Brendan') + '</span>' +
-          (f.comment ? '<div style="font-size:11px; color:var(--ink-muted); margin-top:2px;">' + escapeHtml(f.comment) + '</div>' : '') +
+          '<strong>' + fmtDateFR(f.date) + '</strong>' +
+          ' <span class="badge-op" style="margin-left:6px;">' + escapeHtml(f.tech || "N/C") + '</span>' +
+          (f.comment ? '<div style="font-size:11px; color:var(--ink-muted);">' + escapeHtml(f.comment) + '</div>' : '') +
         '</div>' +
         '<div style="display:flex; align-items:center; gap:10px;">' +
           '<span style="font-family:var(--font-mono); color:var(--danger); font-weight:700;">' + fmtEuro(f.montant) + '</span>' +
@@ -955,6 +944,21 @@
     });
   }
 
+  function renderTarifs(){
+    var tbody = document.getElementById('tariffRows');
+    tbody.innerHTML = "";
+    TYPOS.forEach(function(t){
+      var row = tariffs[t] || {Orange:0, SFR:0};
+      var tr = document.createElement('tr');
+      tr.style.borderBottom = "1px solid var(--border)";
+      tr.innerHTML = 
+        '<td style="padding:8px; font-weight:600;">' + escapeHtml(t) + '</td>' +
+        '<td style="padding:8px; font-family:var(--font-mono);">' + fmtEuro(row.Orange) + '</td>' +
+        '<td style="padding:8px; font-family:var(--font-mono);">' + fmtEuro(row.SFR) + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
   // Modal Detail / Edition
   function openModal(e){
     selectedModalEntry = e;
@@ -987,20 +991,15 @@
     renderHistorique();
     document.getElementById('detailModal').classList.remove('active');
     toast("Mise à jour enregistrée");
-
-    postToScript(Object.assign({ action: "update" }, selectedModalEntry));
   });
 
   document.getElementById('m-del-btn').addEventListener('click', function(){
     if (!selectedModalEntry || !confirm("Supprimer cette intervention ?")) return;
-    var target = selectedModalEntry;
-    entries = entries.filter(function(x){ return x !== target; });
+    entries = entries.filter(function(x){ return x !== selectedModalEntry; });
     safeSet(STORE_KEY + "_" + currentViewTech, entries);
     renderHistorique();
     document.getElementById('detailModal').classList.remove('active');
     toast("Intervention supprimée");
-
-    postToScript({ action: "delete", id: target.id, num: target.num });
   });
 
   document.getElementById('hist-tech-select').querySelectorAll('button').forEach(function(b){
@@ -1013,40 +1012,26 @@
     });
   });
 
-  document.getElementById('prevMonth').addEventListener('click', function(){ viewedMonth.setMonth(viewedMonth.getMonth() - 1); renderHistorique(); });
-  document.getElementById('nextMonth').addEventListener('click', function(){ viewedMonth.setMonth(viewedMonth.getMonth() + 1); renderHistorique(); });
-  document.getElementById('histSearch').addEventListener('input', renderHistorique);
-  document.getElementById('reloadBtn').addEventListener('click', function(){
-    loadEntries();
-    loadFuel();
+  document.getElementById('prevMonth').addEventListener('click', function(){ viewedMonth.setMonth(viewedMonth.getMonth() - 1); renderHistorique(); renderCarburant(); });
+  document.getElementById('nextMonth').addEventListener('click', function(){ viewedMonth.setMonth(viewedMonth.getMonth() + 1); renderHistorique(); renderCarburant(); });
+  document.getElementById('reloadBtn').addEventListener('click', function(){ loadEntries(); loadFuel(); });
+  document.getElementById('histSearch').addEventListener('input', function(){ renderHistorique(); });
+
+  document.getElementById('exportXlsx').addEventListener('click', function(){
+    if (typeof XLSX === 'undefined') {
+      toast("Bibliothèque XLSX non chargée");
+      return;
+    }
+    var ws = XLSX.utils.json_to_sheet(entries);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Interventions");
+    XLSX.writeFile(wb, "Raccordements_" + currentViewTech + ".xlsx");
   });
 
-  function renderTarifs(){
-    var tbody = document.getElementById('tariffRows');
-    tbody.innerHTML = "";
-    TYPOS.forEach(function(t){
-      var tr = document.createElement('tr');
-      tr.style.borderBottom = '1px solid var(--border)';
-      var tOrg = tariffs[t] ? tariffs[t].Orange : 0;
-      var tSfr = tariffs[t] ? tariffs[t].SFR : 0;
-      tr.innerHTML = 
-        '<td style="padding:8px;"><strong>' + escapeHtml(t) + '</strong></td>' +
-        '<td style="padding:8px;"><input type="number" step="0.01" style="width:70px; padding:4px; border:1px solid var(--border); border-radius:4px; background:var(--surface-alt); color:#FFF;" value="' + tOrg + '"></td>' +
-        '<td style="padding:8px;"><input type="number" step="0.01" style="width:70px; padding:4px; border:1px solid var(--border); border-radius:4px; background:var(--surface-alt); color:#FFF;" value="' + tSfr + '"></td>';
-      tbody.appendChild(tr);
-    });
-  }
-
-  function escapeHtml(s){
-    return String(s || '').replace(/[&<>"']/g, function(c){
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
-    });
-  }
-
-  document.addEventListener("DOMContentLoaded", function(){
-    updateOpPlaceholder("Orange");
-    loadEntries();
-  });
+  // Initialisation
+  updatePreview();
+  loadEntries();
+  loadFuel();
 
 })();
 </script>
