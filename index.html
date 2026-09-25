@@ -11,14 +11,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
-    --bg: #070D19;
-    --surface: rgba(15, 23, 42, 0.75);
-    --surface-alt: rgba(30, 41, 59, 0.75);
-    --border: rgba(51, 65, 85, 0.6);
+    --bg: #020617;
+    --surface: rgba(10, 16, 31, 0.85);
+    --surface-alt: rgba(15, 23, 42, 0.9);
+    --border: rgba(30, 58, 110, 0.4);
     --ink: #F8FAFC;
-    --ink-muted: #94A3B8;
-    --accent: rgba(30, 58, 138, 0.75);
-    --accent-light: rgba(59, 130, 246, 0.75);
+    --ink-muted: #64748B;
+    --accent: rgba(12, 28, 68, 0.9);
+    --accent-light: #1E40AF;
     --accent-text: #60A5FA;
     --success: #22C55E;
     --success-bg: rgba(34, 197, 94, 0.15);
@@ -243,7 +243,7 @@
   .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.85);
     display: none;
     align-items: center;
     justify-content: center;
@@ -340,10 +340,6 @@
         </select>
       </div>
       <div class="field">
-        <label for="f-zone">Zone</label>
-        <input type="text" id="f-zone" value="66">
-      </div>
-      <div class="field">
         <label for="f-addr">Adresse client</label>
         <input type="text" id="f-addr" placeholder="12 rue de la Paix, Perpignan">
       </div>
@@ -437,7 +433,6 @@
             <th>Ref</th>
             <th>Statut</th>
             <th>Typologie</th>
-            <th>Zone</th>
             <th>Opérateur</th>
             <th>Tarif</th>
             <th>Action</th>
@@ -473,10 +468,6 @@
     <div class="modal-header">
       <div class="modal-title" id="modalTitle">Réf</div>
       <button class="btn-ghost" id="closeModal">✕ Fermer</button>
-    </div>
-    <div class="field">
-      <label>Zone :</label>
-      <input type="text" id="m-zone">
     </div>
     <div class="field">
       <label>Date :</label>
@@ -540,9 +531,9 @@
   var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUZ8Va_VV_J15W6gH26Xxq_MimoGbLfU_6cUUfxHhiRMqOMnBghSyWpkAx90zRtk1q/exec";
 
   var TYPOS = ["Aérien", "Souterrain", "Immeuble", "PLP", "PLP sans client", "SAV"];
-  var STORE_KEY = "raccordements_entries_v6";
-  var FUEL_STORE_KEY = "raccordements_fuel_v6";
-  var TARIFF_KEY = "raccordements_tarifs_v6";
+  var STORE_KEY = "raccordements_entries_v7";
+  var FUEL_STORE_KEY = "raccordements_fuel_v7";
+  var TARIFF_KEY = "raccordements_tarifs_v7";
 
   var DEFAULT_TARIFFS = {
     "Aérien": {Orange:160.00, SFR:140.50},
@@ -677,7 +668,7 @@
   }
   window.loadFuel = loadFuel;
 
-  // Gestion des onglets
+  // Navigation Onglets
   document.querySelectorAll('.tabbar button').forEach(function(btn){
     btn.addEventListener('click', function(){
       document.querySelectorAll('.tabbar button').forEach(function(b){ b.classList.remove('active'); });
@@ -691,7 +682,7 @@
     });
   });
 
-  // Remplissage Typologies
+  // Typologies
   var typoSelect = document.getElementById('f-typo');
   TYPOS.forEach(function(t){
     var opt = document.createElement('option');
@@ -745,11 +736,10 @@
   document.getElementById('f-date').value = toISODate(new Date());
   document.getElementById('fuel-date').value = toISODate(new Date());
 
-  // Enregistrement de l'intervention
+  // Enregistrer intervention
   document.getElementById('f-save').addEventListener('click', function(){
     var date = document.getElementById('f-date').value;
     var num = document.getElementById('f-num').value.trim();
-    var zone = document.getElementById('f-zone').value.trim();
     var addr = document.getElementById('f-addr').value.trim();
     var comment = document.getElementById('f-comment').value.trim();
 
@@ -764,7 +754,6 @@
       id: "INT-" + Math.floor(10000 + Math.random() * 90000),
       num: num,
       date: date,
-      zone: zone || "66",
       addr: addr,
       typo: form.typo,
       statut: form.statut,
@@ -905,7 +894,7 @@
     tbody.innerHTML = "";
 
     if (monthEntries.length === 0){
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--ink-muted); padding:20px;">Aucune intervention trouvée.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--ink-muted); padding:20px;">Aucune intervention trouvée.</td></tr>';
       return;
     }
 
@@ -917,7 +906,6 @@
         '<td><span style="font-family:var(--font-mono); font-weight:700; color:var(--accent-text);">' + escapeHtml(e.num) + '</span></td>' +
         '<td class="badge-statut">' + iconStatut + '</td>' +
         '<td><span class="badge-typo">' + escapeHtml(e.typo) + '</span></td>' +
-        '<td>' + escapeHtml(e.zone || "66") + '</td>' +
         '<td><span class="badge-op">' + escapeHtml(e.op) + '</span></td>' +
         '<td class="tarif-val">' + fmtEuro(e.montant) + '</td>' +
         '<td><button class="btn-ghost" style="padding:2px 6px;">✏️</button></td>';
@@ -927,11 +915,10 @@
     });
   }
 
-  // Modal de détail / édition
+  // Modal Detail / Edition
   function openModal(e){
     selectedModalEntry = e;
     document.getElementById('modalTitle').textContent = "Réf : " + escapeHtml(e.num);
-    document.getElementById('m-zone').value = e.zone || "66";
     document.getElementById('m-date').value = fmtDateFR(e.date);
     document.getElementById('m-num').value = e.num;
     document.getElementById('m-planning').value = e.techSolo || currentViewTech;
@@ -952,7 +939,6 @@
 
   document.getElementById('m-save-btn').addEventListener('click', function(){
     if (!selectedModalEntry) return;
-    selectedModalEntry.zone = document.getElementById('m-zone').value;
     selectedModalEntry.num = document.getElementById('m-num').value;
     selectedModalEntry.typo = document.getElementById('m-typo').value;
     selectedModalEntry.comment = document.getElementById('m-comment').value;
