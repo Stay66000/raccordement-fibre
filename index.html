@@ -213,7 +213,7 @@
     vertical-align: middle;
   }
   table.custom-table tr:last-child td { border-bottom: none; }
-  table.custom-table tr:hover { background: rgba(255, 255, 255, 0.03); cursor: pointer; }
+  table.custom-table tr.inter-row:hover { background: rgba(255, 255, 255, 0.05); cursor: pointer; }
 
   .badge-statut { font-size: 14px; }
   .badge-typo {
@@ -439,6 +439,7 @@
       <table class="custom-table">
         <thead>
           <tr>
+            <th>Date</th>
             <th>Ref</th>
             <th>Statut</th>
             <th>Typologie</th>
@@ -480,11 +481,18 @@
     </div>
     <div class="field">
       <label>Date :</label>
-      <input type="text" id="m-date">
+      <input type="date" id="m-date">
     </div>
     <div class="field">
       <label>Ref intervention :</label>
       <input type="text" id="m-num">
+    </div>
+    <div class="field">
+      <label>Adresse client :</label>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <input type="text" id="m-addr" placeholder="Adresse du client">
+        <a id="m-maps-btn" href="#" target="_blank" style="display:none; padding:8px 10px; background:#EF4444; color:#FFF; border-radius:6px; text-decoration:none; font-weight:600; font-size:11px; white-space:nowrap;">🔴 Maps</a>
+      </div>
     </div>
     <div class="field">
       <label>Technicien :</label>
@@ -544,7 +552,6 @@
   var FUEL_STORE_KEY = "raccordements_fuel_v8";
   var TARIFF_KEY = "raccordements_tarifs_v8";
 
-  // Grille tarifaire corrigée (SFR mis à jour selon vos consignes)
   var DEFAULT_TARIFFS = {
     "Aérien": {Orange: 160.00, SFR: 140.00},
     "Souterrain": {Orange: 112.00, SFR: 90.00},
@@ -586,13 +593,13 @@
   }
 
   function parseISO(dateVal) {
-    if (!dateVal) return new Date();
-    if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? new Date() : dateVal;
+    if (!dateVal) return new Date(0);
+    if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? new Date(0) : dateVal;
     if (typeof dateVal === 'number') return new Date(dateVal);
 
     if (typeof dateVal === 'string') {
       var s = dateVal.trim();
-      if (!s) return new Date();
+      if (!s) return new Date(0);
 
       if (s.indexOf('/') !== -1) {
         var p = s.split('/');
@@ -604,7 +611,7 @@
         }
       }
 
-      if (s.indexOf('-') !== -1 && s.indexOf(' ') === -1 && s.indexOf('GMT') === -1) {
+      if (s.indexOf('-') !== -1) {
         var p = s.split('T')[0].split('-');
         if (p.length === 3) {
           var year = parseInt(p[0], 10);
@@ -617,12 +624,16 @@
       var parsed = new Date(s);
       if (!isNaN(parsed.getTime())) return parsed;
     }
-    return new Date();
+    return new Date(0);
   }
 
+  // Tri par date décroissante (exactement comme sur Google Sheets)
   function sortByDateDesc(arr) {
     return arr.slice().sort(function(a, b) {
-      return parseISO(b.date).getTime() - parseISO(a.date).getTime();
+      var timeA = parseISO(a.date).getTime();
+      var timeB = parseISO(b.date).getTime();
+      if (timeB !== timeA) return timeB - timeA;
+      return String(b.num || b.id || '').localeCompare(String(a.num || a.id || ''));
     });
   }
 
@@ -809,7 +820,7 @@
     }
   });
 
-  // Carburant Saisie & Suppression
+  // Carburant Saisie
   document.getElementById('fuel-save').addEventListener('click', function(){
     var date = document.getElementById('fuel-date').value;
     var amount = parseFloat(document.getElementById('fuel-amount').value);
@@ -929,23 +940,68 @@
     tbody.innerHTML = "";
 
     if (monthEntries.length === 0){
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--ink-muted); padding:20px;">Aucune intervention trouvée.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--ink-muted); padding:20px;">Aucune intervention trouvée.</td></tr>';
       return;
     }
 
     monthEntries.forEach(function(e){
       var tr = document.createElement('tr');
+      tr.className = 'inter-row';
       var iconStatut = e.statut === "Réussite" ? "👍" : "❌";
 
       tr.innerHTML = 
-        '<td><span style="font-family:var(--font-mono); font-weight:700; color:var(--accent-text);">' + escapeHtml(e.num) + '</span></td>' +
+        '<td><span style="font-family:var(--font-mono); font-size:11px; font-weight:600; color:var(--accent-text);">' + escapeHtml(fmtDateFR(e.date)) + '</span></td>' +
+        '<td><span style="font-family:var(--font-mono); font-weight:700; color:#FFF;">' + escapeHtml(e.num) + '</span></td>' +
         '<td class="badge-statut">' + iconStatut + '</td>' +
         '<td><span class="badge-typo">' + escapeHtml(e.typo) + '</span></td>' +
         '<td><span class="badge-op">' + escapeHtml(e.op) + '</span></td>' +
         '<td class="tarif-val">' + fmtEuro(e.montant) + '</td>' +
-        '<td><button class="btn-ghost" style="padding:2px 6px;">✏️</button></td>';
+        '<td><button class="btn-ghost btn-edit-modal" style="padding:2px 6px;">✏️</button></td>';
 
-      tr.addEventListener('click', function(){ openModal(e); });
+      // Au clic sur l'intervention : rajoute/affiche la ligne avec l'adresse du client et le bouton Maps
+      tr.addEventListener('click', function(evt){
+        if (evt.target.classList.contains('btn-edit-modal') || evt.target.closest('.btn-edit-modal')) {
+          evt.stopPropagation();
+          openModal(e);
+          return;
+        }
+
+        var next = tr.nextElementSibling;
+        var rowId = String(e.id || e.num);
+
+        if (next && next.classList.contains('detail-row') && next.dataset.id === rowId) {
+          next.remove();
+        } else {
+          var existing = tbody.querySelector('.detail-row');
+          if (existing) existing.remove();
+
+          var trDetail = document.createElement('tr');
+          trDetail.className = 'detail-row';
+          trDetail.dataset.id = rowId;
+          trDetail.style.background = 'rgba(15, 23, 42, 0.95)';
+
+          var mapsUrl = e.addr ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(e.addr) : '#';
+
+          var addrText = e.addr ? escapeHtml(e.addr) : '<em style="color:var(--ink-muted);">Adresse non renseignée</em>';
+          var mapsBtnHtml = e.addr ? 
+            '<a href="' + mapsUrl + '" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:#EF4444; color:#FFF; padding:4px 10px; border-radius:20px; text-decoration:none; font-weight:600; font-size:11px;">' +
+              '<span style="display:inline-block; width:8px; height:8px; background:#FFF; border-radius:50%;"></span> 📍 Google Maps' +
+            '</a>' : '';
+
+          trDetail.innerHTML = 
+            '<td colspan="7" style="padding:10px 14px; border-bottom:1px solid var(--border);">' +
+              '<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">' +
+                '<div style="font-size:12px;">' +
+                  '<strong style="color:var(--accent-text);">📍 Adresse client : </strong>' + addrText +
+                '</div>' +
+                mapsBtnHtml +
+              '</div>' +
+            '</td>';
+
+          tr.parentNode.insertBefore(trDetail, tr.nextSibling);
+        }
+      });
+
       tbody.appendChild(tr);
     });
   }
@@ -969,30 +1025,50 @@
   function openModal(e){
     selectedModalEntry = e;
     document.getElementById('modalTitle').textContent = "Réf : " + escapeHtml(e.num);
-    document.getElementById('m-date').value = fmtDateFR(e.date);
-    document.getElementById('m-num').value = e.num;
+    document.getElementById('m-date').value = toISODate(e.date);
+    document.getElementById('m-num').value = e.num || "";
+    document.getElementById('m-addr').value = e.addr || "";
     document.getElementById('m-planning').value = e.techSolo || currentViewTech;
-    document.getElementById('m-typo').value = e.typo;
+    document.getElementById('m-typo').value = e.typo || "";
+
+    var mapsBtn = document.getElementById('m-maps-btn');
+    if (e.addr) {
+      mapsBtn.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(e.addr);
+      mapsBtn.style.display = "inline-block";
+    } else {
+      mapsBtn.style.display = "none";
+    }
+
+    var mStatutSeg = document.getElementById('m-statut-seg');
+    if (mStatutSeg) {
+      mStatutSeg.querySelectorAll('button').forEach(function(b){
+        if (b.dataset.val === e.statut) {
+          b.classList.add('selected');
+        } else {
+          b.classList.remove('selected');
+        }
+      });
+    }
+
     document.getElementById('m-comment').value = e.comment || "";
-
-    var seg = document.getElementById('m-statut-seg');
-    seg.querySelectorAll('button').forEach(function(b){
-      b.classList.toggle('selected', b.dataset.val === e.statut);
-    });
-
     document.getElementById('detailModal').classList.add('active');
   }
 
-  document.getElementById('closeModal').addEventListener('click', function(){
+  function closeModal(){
     document.getElementById('detailModal').classList.remove('active');
+    selectedModalEntry = null;
+  }
+
+  document.getElementById('closeModal').addEventListener('click', closeModal);
+  document.getElementById('detailModal').addEventListener('click', function(e){
+    if (e.target === this) closeModal();
   });
 
-  var modalSeg = document.getElementById('m-statut-seg');
-  if (modalSeg) {
-    modalSeg.querySelectorAll('button').forEach(function(b){
+  var mStatutSeg = document.getElementById('m-statut-seg');
+  if (mStatutSeg) {
+    mStatutSeg.querySelectorAll('button').forEach(function(b){
       b.addEventListener('click', function(){
-        if (selectedModalEntry) selectedModalEntry.statut = b.dataset.val;
-        modalSeg.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
+        mStatutSeg.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
         b.classList.add('selected');
       });
     });
@@ -1000,31 +1076,68 @@
 
   document.getElementById('m-save-btn').addEventListener('click', function(){
     if (!selectedModalEntry) return;
-    selectedModalEntry.num = document.getElementById('m-num').value.trim();
-    selectedModalEntry.techSolo = document.getElementById('m-planning').value.trim();
-    selectedModalEntry.typo = document.getElementById('m-typo').value.trim();
-    selectedModalEntry.comment = document.getElementById('m-comment').value.trim();
 
-    // Recalcul du montant
-    selectedModalEntry.montant = computeMontant(selectedModalEntry.typo, selectedModalEntry.statut, selectedModalEntry.op);
+    var newDate = document.getElementById('m-date').value;
+    var newNum = document.getElementById('m-num').value.trim();
+    var newAddr = document.getElementById('m-addr').value.trim();
+    var newTech = document.getElementById('m-planning').value.trim();
+    var newTypo = document.getElementById('m-typo').value.trim();
+    var newComment = document.getElementById('m-comment').value.trim();
 
+    var selStatutBtn = document.querySelector('#m-statut-seg button.selected');
+    var newStatut = selStatutBtn ? selStatutBtn.dataset.val : selectedModalEntry.statut;
+
+    if (!newDate || !newNum) {
+      toast("Date et Référence requises");
+      return;
+    }
+
+    selectedModalEntry.date = newDate;
+    selectedModalEntry.num = newNum;
+    selectedModalEntry.addr = newAddr;
+    selectedModalEntry.techSolo = newTech;
+    selectedModalEntry.typo = newTypo;
+    selectedModalEntry.statut = newStatut;
+    selectedModalEntry.comment = newComment;
+    selectedModalEntry.montant = computeMontant(newTypo, newStatut, selectedModalEntry.op);
+
+    entries = sortByDateDesc(entries);
     safeSet(STORE_KEY + "_" + currentViewTech, entries);
     renderHistorique();
-    document.getElementById('detailModal').classList.remove('active');
+    closeModal();
     toast("Intervention mise à jour");
+
+    if (SCRIPT_URL) {
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(Object.assign({ action: "update" }, selectedModalEntry))
+      });
+    }
   });
 
   document.getElementById('m-del-btn').addEventListener('click', function(){
     if (!selectedModalEntry) return;
-    if (!confirm("Voulez-vous vraiment supprimer cette intervention ?")) return;
+    if (!confirm("Supprimer cette intervention ?")) return;
+
     entries = entries.filter(function(x){ return (x.id || x.num) !== (selectedModalEntry.id || selectedModalEntry.num); });
     safeSet(STORE_KEY + "_" + currentViewTech, entries);
     renderHistorique();
-    document.getElementById('detailModal').classList.remove('active');
+    closeModal();
     toast("Intervention supprimée");
+
+    if (SCRIPT_URL) {
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: "delete", id: selectedModalEntry.id || selectedModalEntry.num, tech: currentViewTech })
+      });
+    }
   });
 
-  // Sélection du technicien dans l'historique
+  // Filtre Technicien Historique
   var histTechWrap = document.getElementById('hist-tech-select');
   if (histTechWrap) {
     histTechWrap.querySelectorAll('button').forEach(function(b){
@@ -1038,85 +1151,57 @@
     });
   }
 
-  // Navigation Mois
+  // Mois précédent / suivant
   document.getElementById('prevMonth').addEventListener('click', function(){
     viewedMonth.setMonth(viewedMonth.getMonth() - 1);
     renderHistorique();
     renderCarburant();
   });
-
   document.getElementById('nextMonth').addEventListener('click', function(){
     viewedMonth.setMonth(viewedMonth.getMonth() + 1);
     renderHistorique();
     renderCarburant();
   });
 
-  // Recherche
-  document.getElementById('histSearch').addEventListener('input', function(){
-    renderHistorique();
-  });
-
-  // Bouton Synchro
+  // Recherche & Synchro
   document.getElementById('reloadBtn').addEventListener('click', function(){
     loadEntries();
     loadFuel();
   });
 
-  // FONCTION EXPORTATION EXCEL (.XLSX)
-  function exportToExcel() {
-    var dataList = getFilteredMonthEntries();
+  document.getElementById('histSearch').addEventListener('input', function(){
+    renderHistorique();
+  });
 
-    if (dataList.length === 0) {
-      toast("Aucune donnée à exporter !");
-      return;
-    }
+  // Export Excel (.xlsx)
+  document.getElementById('exportXlsx').addEventListener('click', function(){
+    var monthEntries = getFilteredMonthEntries();
+    if (!monthEntries.length) { toast("Aucune donnée à exporter"); return; }
 
-    var excelRows = dataList.map(function(item) {
+    var exportData = monthEntries.map(function(e){
       return {
-        "Date": fmtDateFR(item.date),
-        "Référence / N°": item.num || "",
-        "Opérateur": item.op || "",
-        "Typologie": item.typo || "",
-        "Statut": item.statut || "",
-        "Mode": item.solo || "Solo",
-        "Technicien": item.techSolo || currentViewTech,
-        "Adresse": item.addr || "",
-        "Montant (€)": item.montant || 0,
-        "Commentaire": item.comment || ""
+        "Date": fmtDateFR(e.date),
+        "Réf": e.num,
+        "Statut": e.statut,
+        "Typologie": e.typo,
+        "Opérateur": e.op,
+        "Mode": e.solo,
+        "Technicien": e.techSolo || currentViewTech,
+        "Adresse": e.addr || "",
+        "Montant (€)": e.montant || 0,
+        "Commentaire": e.comment || ""
       };
     });
 
-    var ws = XLSX.utils.json_to_sheet(excelRows);
-    
-    // Largeurs de colonnes personnalisées
-    ws['!cols'] = [
-      { wch: 12 }, // Date
-      { wch: 16 }, // Réf
-      { wch: 12 }, // Opérateur
-      { wch: 18 }, // Typologie
-      { wch: 12 }, // Statut
-      { wch: 10 }, // Mode
-      { wch: 14 }, // Technicien
-      { wch: 30 }, // Adresse
-      { wch: 12 }, // Montant
-      { wch: 25 }  // Commentaire
-    ];
-
+    var ws = XLSX.utils.json_to_sheet(exportData);
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Interventions");
-
-    var y = viewedMonth.getFullYear();
-    var m = String(viewedMonth.getMonth() + 1).padStart(2, '0');
-    var fileName = "Raccordements_" + currentViewTech + "_" + y + "-" + m + ".xlsx";
-
-    XLSX.writeFile(wb, fileName);
-    toast("Export Excel généré !");
-  }
-
-  document.getElementById('exportXlsx').addEventListener('click', exportToExcel);
+    XLSX.writeFile(wb, "Interventions_" + currentViewTech + "_" + (viewedMonth.getMonth()+1) + "_" + viewedMonth.getFullYear() + ".xlsx");
+  });
 
   // Initialisation
   loadEntries();
+  loadFuel();
 })();
 </script>
 </body>
