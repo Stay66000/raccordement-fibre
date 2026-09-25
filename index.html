@@ -208,7 +208,7 @@
     text-transform: uppercase;
   }
   table.custom-table td {
-    padding: 10px 10px;
+    padding: 14px 10px;
     border-bottom: 1px solid var(--border);
     vertical-align: middle;
   }
@@ -238,7 +238,6 @@
     font-weight: 700;
   }
 
-  /* MODAL DE DETAIL */
   .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -271,7 +270,6 @@
   }
   .modal-title { font-family: var(--font-mono); font-size: 15px; font-weight: 700; color: var(--accent-text); }
 
-  /* TABBAR BOTTOM */
   nav.tabbar {
     position: fixed;
     bottom: 0; left: 0; right: 0;
@@ -330,7 +328,7 @@
       </div>
       <div class="field">
         <label for="f-num">N° intervention / Réf</label>
-        <input type="text" id="f-num" placeholder="Ex : 0468934875">
+        <input type="text" id="f-num" placeholder="Ex : 0468934875 (10 chiffres)">
       </div>
       <div class="field">
         <label for="f-typo">Typologie raccordement</label>
@@ -428,6 +426,53 @@
         <button class="btn-ghost" id="nextMonth">›</button>
       </div>
       <div class="month-total-pill" id="totalGlobalBadge">Total : 0,00 €</div>
+    </div>
+
+    <!-- CARTE DE TAUX DE RÉUSSITE -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; margin-bottom: 12px;">
+      <!-- Stats Mois -->
+      <div class="card" style="margin-bottom:0; padding:12px; background:var(--surface-alt);">
+        <div style="font-weight:700; font-size:13px; color:var(--accent-text); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:6px;">
+          <span>📅 Taux de réussite (Mois)</span>
+          <span id="stat-month-pct-badge" class="badge-typo" style="background:var(--success-bg); color:var(--success); font-family:var(--font-mono); font-size:12px; font-weight:700;">0%</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px; font-size:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:var(--ink-muted);">Tout opérateur :</span>
+            <strong id="stat-month-global" style="font-family:var(--font-mono); color:var(--ink);">0/0 dossier réussi (0%)</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#FF7900; font-weight:600;">Orange 🍊 :</span>
+            <strong id="stat-month-orange" style="font-family:var(--font-mono); color:#FF7900;">0/0 (0%)</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#EF4444; font-weight:600;">SFR 🔴 :</span>
+            <strong id="stat-month-sfr" style="font-family:var(--font-mono); color:#EF4444;">0/0 (0%)</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Semaine en cours -->
+      <div class="card" style="margin-bottom:0; padding:12px; background:var(--surface-alt);">
+        <div style="font-weight:700; font-size:13px; color:var(--accent-text); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:6px;">
+          <span>⚡ Taux de réussite (Semaine)</span>
+          <span id="stat-week-pct-badge" class="badge-typo" style="background:var(--success-bg); color:var(--success); font-family:var(--font-mono); font-size:12px; font-weight:700;">0%</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px; font-size:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:var(--ink-muted);">Tout opérateur :</span>
+            <strong id="stat-week-global" style="font-family:var(--font-mono); color:var(--ink);">0/0 dossier réussi (0%)</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#FF7900; font-weight:600;">Orange 🍊 :</span>
+            <strong id="stat-week-orange" style="font-family:var(--font-mono); color:#FF7900;">0/0 (0%)</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#EF4444; font-weight:600;">SFR 🔴 :</span>
+            <strong id="stat-week-sfr" style="font-family:var(--font-mono); color:#EF4444;">0/0 (0%)</strong>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="field" style="margin-bottom:10px;">
@@ -587,7 +632,6 @@
 
   var form = { typo: "", statut: "Réussite", op: "Orange", solo: "Solo", techSolo: "Brendan" };
   var viewedMonth = new Date();
-  var selectedModalEntry = null;
 
   function fmtEuro(n){
     if (n === null || n === undefined || isNaN(n)) n = 0;
@@ -629,7 +673,6 @@
     return new Date();
   }
 
-  // TRI ASCENDANT : Du 1er du mois (en haut) au 31 (en bas)
   function sortByDateAsc(arr) {
     return arr.slice().sort(function(a, b) {
       return parseISO(a.date).getTime() - parseISO(b.date).getTime();
@@ -650,11 +693,49 @@
     return day + "/" + m + "/" + d.getFullYear();
   }
 
+  // Obtenir la plage de dates pour la semaine courante (du Lundi au Dimanche)
+  function getWeekRange(refDate) {
+    var d = refDate ? new Date(refDate) : new Date();
+    var day = d.getDay();
+    var diffToMonday = d.getDate() - day + (day === 0 ? -6 : 1);
+    var monday = new Date(d.getFullYear(), d.getMonth(), diffToMonday, 0, 0, 0, 0);
+    var sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6, 23, 59, 59, 999);
+    return { start: monday, end: sunday };
+  }
+
+  function getWeekEntries(allEntries) {
+    var weekRange = getWeekRange(new Date());
+    return allEntries.filter(function(e) {
+      var d = parseISO(e.date);
+      return d >= weekRange.start && d <= weekRange.end;
+    });
+  }
+
+  // Calcul du taux de réussite avec ratio et pourcentage
+  function formatSuccessRate(entryList) {
+    var total = entryList.length;
+    var success = 0;
+    for (var i = 0; i < entryList.length; i++) {
+      if (entryList[i].statut === "Réussite") {
+        success++;
+      }
+    }
+    var pct = total > 0 ? Math.round((success / total) * 100) : 0;
+    var labelDossiers = success > 1 ? "dossiers réussis" : "dossier réussi";
+    return {
+      success: success,
+      total: total,
+      pct: pct,
+      fullText: success + "/" + total + " " + labelDossiers + " (" + pct + "%)",
+      shortText: success + "/" + total + " (" + pct + "%)"
+    };
+  }
+
   function toast(msg){
     var el = document.getElementById('toast');
     el.textContent = msg;
     el.classList.add('show');
-    setTimeout(function(){ el.classList.remove('show'); }, 2200);
+    setTimeout(function(){ el.classList.remove('show'); }, 2500);
   }
 
   function loadEntries(){
@@ -677,7 +758,6 @@
       })
       .catch(function(){ toast("Mode local (hors-ligne)"); });
   }
-  window.loadEntries = loadEntries;
 
   function loadFuel(){
     renderCarburant();
@@ -692,9 +772,7 @@
         }
       });
   }
-  window.loadFuel = loadFuel;
 
-  // Navigation Onglets
   document.querySelectorAll('.tabbar button').forEach(function(btn){
     btn.addEventListener('click', function(){
       document.querySelectorAll('.tabbar button').forEach(function(b){ b.classList.remove('active'); });
@@ -708,7 +786,6 @@
     });
   });
 
-  // Typologies
   var typoSelect = document.getElementById('f-typo');
   TYPOS.forEach(function(t){
     var opt = document.createElement('option');
@@ -720,9 +797,9 @@
   function updateOpPlaceholder(opVal){
     var input = document.getElementById('f-num');
     if (opVal === "Orange") {
-      input.placeholder = "Ex : 0468934875";
+      input.placeholder = "Ex : 0468934875 (10 chiffres obligatoires)";
     } else {
-      input.placeholder = "Ex : 133627482";
+      input.placeholder = "Ex : 133627482 (9 chiffres obligatoires)";
     }
   }
 
@@ -740,14 +817,11 @@
     });
   }
   wireSeg('f-statut', 'statut');
-  wireSeg('f-op', 'op', function(v){
-    updateOpPlaceholder(v);
-  });
+  wireSeg('f-op', 'op', function(v){ updateOpPlaceholder(v); });
   wireSeg('f-solo', 'solo', function(v){
     document.getElementById('wrap-tech-solo').style.display = (v === 'Solo') ? 'block' : 'none';
   });
 
-  // GESTION TECHNICIEN CARBURANT
   var fuelTechWrap = document.getElementById('fuel-tech');
   if (fuelTechWrap) {
     fuelTechWrap.querySelectorAll('button').forEach(function(b){
@@ -772,10 +846,18 @@
     document.getElementById('f-preview').textContent = fmtEuro(m);
   }
 
+  function resetSaisieForm(){
+    document.getElementById('f-num').value = "";
+    document.getElementById('f-addr').value = "";
+    document.getElementById('f-comment').value = "";
+    document.getElementById('f-typo').value = "";
+    form.typo = "";
+    updatePreview();
+  }
+
   document.getElementById('f-date').value = toISODate(new Date());
   document.getElementById('fuel-date').value = toISODate(new Date());
 
-  // Enregistrer intervention
   document.getElementById('f-save').addEventListener('click', function(){
     var date = document.getElementById('f-date').value;
     var num = document.getElementById('f-num').value.trim();
@@ -783,15 +865,29 @@
     var comment = document.getElementById('f-comment').value.trim();
 
     if (!date || !num || !form.typo){
-      toast("Complète les champs requis");
+      toast("Veuillez remplir tous les champs obligatoires");
       return;
+    }
+
+    var cleanNum = num.replace(/\s+/g, '');
+
+    if (form.op === "Orange") {
+      if (!/^\d{10}$/.test(cleanNum)) {
+        toast("⚠️ Orange : Le N° doit faire exactement 10 chiffres !");
+        return;
+      }
+    } else if (form.op === "SFR") {
+      if (!/^\d{9}$/.test(cleanNum)) {
+        toast("⚠️ SFR : Le N° doit faire exactement 9 chiffres !");
+        return;
+      }
     }
 
     var montant = computeMontant(form.typo, form.statut, form.op);
 
     var entry = {
       id: "INT-" + Math.floor(10000 + Math.random() * 90000),
-      num: num,
+      num: cleanNum,
       date: date,
       addr: addr,
       typo: form.typo,
@@ -807,7 +903,9 @@
     entries = sortByDateAsc(entries);
     safeSet(STORE_KEY + "_" + currentViewTech, entries);
     renderHistorique();
-    toast("Intervention ajoutée !");
+    
+    toast("✅ Intervention ajoutée !");
+    resetSaisieForm();
 
     if (SCRIPT_URL) {
       fetch(SCRIPT_URL, {
@@ -819,7 +917,6 @@
     }
   });
 
-  // Carburant Saisie & Suppression
   document.getElementById('fuel-save').addEventListener('click', function(){
     var date = document.getElementById('fuel-date').value;
     var amount = parseFloat(document.getElementById('fuel-amount').value);
@@ -899,14 +996,11 @@
           '<button class="btn-ghost btn-del-fuel" data-fid="' + fid + '" style="color:var(--danger); border-color:rgba(239, 68, 68, 0.4); padding:2px 8px; font-size:12px;">✕</button>' +
         '</div>';
 
-      div.querySelector('.btn-del-fuel').addEventListener('click', function(){
-        deleteFuel(fid);
-      });
+      div.querySelector('.btn-del-fuel').addEventListener('click', function(){ deleteFuel(fid); });
       list.appendChild(div);
     });
   }
 
-  // Affichage Historique
   var MOIS_FR = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 
   function getFilteredMonthEntries() {
@@ -930,6 +1024,36 @@
     var y = viewedMonth.getFullYear(), m = viewedMonth.getMonth();
     document.getElementById('monthLabel').textContent = MOIS_FR[m] + " " + y;
 
+    // --- MISE À JOUR DES STATISTIQUES DE RÉUSSITE ---
+    
+    // 1. Stats pour le Mois sélectionné
+    var allMonthEntries = entries.filter(function(e){
+      var d = parseISO(e.date);
+      return d.getFullYear() === y && d.getMonth() === m;
+    });
+
+    var monthGlobal = formatSuccessRate(allMonthEntries);
+    var monthOrange = formatSuccessRate(allMonthEntries.filter(function(e){ return e.op === "Orange"; }));
+    var monthSFR = formatSuccessRate(allMonthEntries.filter(function(e){ return e.op === "SFR"; }));
+
+    document.getElementById('stat-month-pct-badge').textContent = monthGlobal.pct + "%";
+    document.getElementById('stat-month-global').textContent = monthGlobal.fullText;
+    document.getElementById('stat-month-orange').textContent = monthOrange.shortText;
+    document.getElementById('stat-month-sfr').textContent = monthSFR.shortText;
+
+    // 2. Stats pour la Semaine en cours
+    var allWeekEntries = getWeekEntries(entries);
+    var weekGlobal = formatSuccessRate(allWeekEntries);
+    var weekOrange = formatSuccessRate(allWeekEntries.filter(function(e){ return e.op === "Orange"; }));
+    var weekSFR = formatSuccessRate(allWeekEntries.filter(function(e){ return e.op === "SFR"; }));
+
+    document.getElementById('stat-week-pct-badge').textContent = weekGlobal.pct + "%";
+    document.getElementById('stat-week-global').textContent = weekGlobal.fullText;
+    document.getElementById('stat-week-orange').textContent = weekOrange.shortText;
+    document.getElementById('stat-week-sfr').textContent = weekSFR.shortText;
+
+    // --- FIN DU CALCUL DES STATISTIQUES ---
+
     var monthEntries = getFilteredMonthEntries();
 
     var totOrange = monthEntries.filter(function(e){ return e.op === "Orange"; }).reduce(function(s,e){ return s + (e.montant||0); }, 0);
@@ -952,7 +1076,7 @@
       
       var mapUrl = e.addr ? "https://maps.google.com/?q=" + encodeURIComponent(e.addr) : "#";
       var addrCell = e.addr 
-        ? '<span style="white-space:nowrap; max-width:160px; overflow:hidden; text-overflow:ellipsis; display:inline-block; vertical-align:middle;">' + escapeHtml(e.addr) + '</span> ' +
+        ? '<span style="white-space:normal; min-width:160px; max-width:280px; display:inline-block; vertical-align:middle; word-break:break-word;">' + escapeHtml(e.addr) + '</span> ' +
           '<a href="' + mapUrl + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" title="Ouvrir dans Google Maps" style="text-decoration:none; font-size:14px; margin-left:4px;">📍</a>'
         : '<span style="color:var(--ink-muted);">-</span>';
 
@@ -961,135 +1085,46 @@
 
       tr.innerHTML = 
         '<td><span style="font-family:var(--font-mono); font-weight:600; color:var(--ink);">' + fmtDateFR(e.date) + '</span></td>' +
-        '<td><span style="font-family:var(--font-mono); font-weight:700; color:var(--accent-text);">' + escapeHtml(e.num) + '</span></td>' +
+        '<td><strong>' + escapeHtml(e.num) + '</strong></td>' +
         '<td>' + addrCell + '</td>' +
-        '<td class="badge-statut">' + iconStatut + '</td>' +
+        '<td><span class="badge-statut">' + iconStatut + '</span></td>' +
         '<td><span class="badge-typo">' + escapeHtml(e.typo) + '</span></td>' +
         '<td class="tarif-val" style="color:#FF7900;">' + orangeVal + '</td>' +
         '<td class="tarif-val" style="color:#EF4444;">' + sfrVal + '</td>' +
-        '<td><button class="btn-ghost" style="padding:2px 6px;">✏️</button></td>';
+        '<td><button class="btn-ghost btn-del-entry" style="color:var(--danger); border-color:var(--danger); padding:2px 6px; font-size:11px;">✕</button></td>';
 
-      tr.addEventListener('click', function(){ openModal(e); });
+      tr.querySelector('.btn-del-entry').addEventListener('click', function(evt){
+        evt.stopPropagation();
+        deleteEntry(e.id || e.num);
+      });
+
       tbody.appendChild(tr);
     });
+  }
+
+  function deleteEntry(id) {
+    if (!confirm("Supprimer cette intervention ?")) return;
+    entries = entries.filter(function(e){ return (e.id || e.num) !== id; });
+    safeSet(STORE_KEY + "_" + currentViewTech, entries);
+    renderHistorique();
+    toast("Intervention supprimée");
   }
 
   function renderTarifs(){
     var tbody = document.getElementById('tariffRows');
     tbody.innerHTML = "";
     TYPOS.forEach(function(t){
-      var row = tariffs[t] || {Orange:0, SFR:0};
+      var row = tariffs[t] || {Orange: 0, SFR: 0};
       var tr = document.createElement('tr');
       tr.style.borderBottom = "1px solid var(--border)";
       tr.innerHTML = 
-        '<td style="padding:8px; font-weight:600;">' + escapeHtml(t) + '</td>' +
-        '<td style="padding:8px; color:#FF7900; font-family:var(--font-mono); font-weight:700;">' + fmtEuro(row.Orange) + '</td>' +
-        '<td style="padding:8px; color:#EF4444; font-family:var(--font-mono); font-weight:700;">' + fmtEuro(row.SFR) + '</td>';
+        '<td style="padding:10px; font-weight:600;">' + escapeHtml(t) + '</td>' +
+        '<td style="padding:10px; color:#FF7900; font-family:var(--font-mono);">' + fmtEuro(row.Orange) + '</td>' +
+        '<td style="padding:10px; color:#EF4444; font-family:var(--font-mono);">' + fmtEuro(row.SFR) + '</td>';
       tbody.appendChild(tr);
     });
   }
 
-  // MODAL DETAILS
-  var mTypoSelect = document.getElementById('m-typo');
-  TYPOS.forEach(function(t){
-    var opt = document.createElement('option');
-    opt.value = t; opt.textContent = t;
-    mTypoSelect.appendChild(opt);
-  });
-
-  function openModal(e){
-    selectedModalEntry = e;
-    document.getElementById('modalTitle').textContent = "Réf : " + (e.num || e.id);
-    document.getElementById('m-date').value = toISODate(e.date);
-    document.getElementById('m-num').value = e.num || "";
-    document.getElementById('m-addr').value = e.addr || "";
-    document.getElementById('m-planning').value = e.techSolo || e.solo || "";
-    document.getElementById('m-typo').value = e.typo || TYPOS[0];
-    document.getElementById('m-comment').value = e.comment || "";
-
-    var modalStatut = e.statut || "Réussite";
-    var mSeg = document.getElementById('m-statut-seg');
-    mSeg.querySelectorAll('button').forEach(function(btn){
-      if(btn.dataset.val === modalStatut) {
-        btn.classList.add('selected');
-      } else {
-        btn.classList.remove('selected');
-      }
-    });
-
-    document.getElementById('detailModal').classList.add('active');
-  }
-
-  document.getElementById('closeModal').addEventListener('click', function(){
-    document.getElementById('detailModal').classList.remove('active');
-  });
-
-  var mSeg = document.getElementById('m-statut-seg');
-  mSeg.querySelectorAll('button').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      mSeg.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
-      btn.classList.add('selected');
-    });
-  });
-
-  document.getElementById('m-save-btn').addEventListener('click', function(){
-    if (!selectedModalEntry) return;
-    var newDate = document.getElementById('m-date').value;
-    var newNum = document.getElementById('m-num').value.trim();
-    var newAddr = document.getElementById('m-addr').value.trim();
-    var newTech = document.getElementById('m-planning').value.trim();
-    var newTypo = document.getElementById('m-typo').value;
-    var selectedStatutBtn = mSeg.querySelector('button.selected');
-    var newStatut = selectedStatutBtn ? selectedStatutBtn.dataset.val : "Réussite";
-    var newComment = document.getElementById('m-comment').value.trim();
-
-    selectedModalEntry.date = newDate;
-    selectedModalEntry.num = newNum;
-    selectedModalEntry.addr = newAddr;
-    selectedModalEntry.techSolo = newTech;
-    selectedModalEntry.typo = newTypo;
-    selectedModalEntry.statut = newStatut;
-    selectedModalEntry.comment = newComment;
-    selectedModalEntry.montant = computeMontant(newTypo, newStatut, selectedModalEntry.op);
-
-    entries = sortByDateAsc(entries);
-    safeSet(STORE_KEY + "_" + currentViewTech, entries);
-    renderHistorique();
-    document.getElementById('detailModal').classList.remove('active');
-    toast("Intervention mise à jour");
-
-    if (SCRIPT_URL) {
-      fetch(SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(Object.assign({ action: "update" }, selectedModalEntry))
-      });
-    }
-  });
-
-  document.getElementById('m-del-btn').addEventListener('click', function(){
-    if (!selectedModalEntry) return;
-    if (!confirm("Supprimer cette intervention ?")) return;
-    entries = entries.filter(function(item){
-      return (item.id || item.num) !== (selectedModalEntry.id || selectedModalEntry.num);
-    });
-    safeSet(STORE_KEY + "_" + currentViewTech, entries);
-    renderHistorique();
-    document.getElementById('detailModal').classList.remove('active');
-    toast("Intervention supprimée");
-
-    if (SCRIPT_URL) {
-      fetch(SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action: "delete", id: selectedModalEntry.id, num: selectedModalEntry.num, tech: currentViewTech })
-      });
-    }
-  });
-
-  // NAVIGATION MOIS & RECHERCHE
   document.getElementById('prevMonth').addEventListener('click', function(){
     viewedMonth.setMonth(viewedMonth.getMonth() - 1);
     renderHistorique();
@@ -1098,61 +1133,19 @@
     viewedMonth.setMonth(viewedMonth.getMonth() + 1);
     renderHistorique();
   });
-  document.getElementById('histSearch').addEventListener('input', function(){
-    renderHistorique();
-  });
 
-  // CHANGEMENT TECHNICIEN EN HISTORIQUE
-  var histTechWrap = document.getElementById('hist-tech-select');
-  if (histTechWrap) {
-    histTechWrap.querySelectorAll('button').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        currentViewTech = btn.dataset.val;
-        histTechWrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
-        btn.classList.add('selected');
-        entries = safeGet(STORE_KEY + "_" + currentViewTech, []);
-        loadEntries();
-      });
-    });
-  }
-
-  // BOUTON RECHARGER / SYNCHRO
-  document.getElementById('reloadBtn').addEventListener('click', function(){
+  wireSeg('hist-tech-select', null, function(techName){
+    currentViewTech = techName;
+    entries = safeGet(STORE_KEY + "_" + currentViewTech, []);
     loadEntries();
-    loadFuel();
   });
 
-  // EXPORT EXCEL
-  document.getElementById('exportXlsx').addEventListener('click', function(){
-    var monthEntries = getFilteredMonthEntries();
-    if (monthEntries.length === 0) {
-      toast("Aucune donnée à exporter");
-      return;
-    }
-    var data = monthEntries.map(function(e){
-      return {
-        "Date": fmtDateFR(e.date),
-        "Référence": e.num,
-        "Adresse": e.addr || "",
-        "Statut": e.statut,
-        "Typologie": e.typo,
-        "Opérateur": e.op,
-        "Montant Orange (€)": e.op === "Orange" ? e.montant : 0,
-        "Montant SFR (€)": e.op === "SFR" ? e.montant : 0,
-        "Technicien": e.techSolo || e.solo || "",
-        "Commentaire": e.comment || ""
-      };
-    });
-    var ws = XLSX.utils.json_to_sheet(data);
-    var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Interventions");
-    var mName = MOIS_FR[viewedMonth.getMonth()] + "_" + viewedMonth.getFullYear();
-    XLSX.writeFile(wb, "Raccordements_" + currentViewTech + "_" + mName + ".xlsx");
-  });
+  document.getElementById('histSearch').addEventListener('input', function(){ renderHistorique(); });
+  document.getElementById('reloadBtn').addEventListener('click', function(){ loadEntries(); });
 
-  // INITIALISATION
-  updatePreview();
+  // Initialisation
   loadEntries();
+
 })();
 </script>
 </body>
