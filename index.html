@@ -135,6 +135,7 @@
     border-right: 1px solid var(--line);
   }
   .seg button:last-child { border-right: none; }
+  .seg button.selected { background: var(--surface-alt); color: var(--ink); border-bottom: 2px solid var(--accent); }
   .seg button.selected.ok { background: var(--success-tint); color: var(--success); }
   .seg button.selected.bad { background: var(--danger-tint); color: var(--danger); }
   .seg button.selected.orange { background: var(--orange-soft); color: var(--orange-ink); }
@@ -401,6 +402,13 @@
   <section class="view active" id="view-saisie">
     <div class="card">
       <div class="field">
+        <label>Technicien / Appareil</label>
+        <div class="seg" id="f-tech">
+          <button data-val="Brendan" class="neutral">Brendan</button>
+          <button data-val="Hamlili" class="neutral">Hamlili</button>
+        </div>
+      </div>
+      <div class="field">
         <label for="f-date">Date</label>
         <input type="date" id="f-date">
       </div>
@@ -538,8 +546,10 @@
   var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUZ8Va_VV_J15W6gH26Xxq_MimoGbLfU_6cUUfxHhiRMqOMnBghSyWpkAx90zRtk1q/exec";
 
   var TYPOS = ["Aérien","Souterrain","Immeuble","PLP","SAV","PLP sans client"];
-  var STORE_KEY = "raccordements_entries_v2";
+  var STORE_KEY = "raccordements_entries_v3";
   var TARIFF_KEY = "raccordements_tarifs_v2";
+  var TECH_KEY = "raccordements_tech_user";
+
   var DEFAULT_TARIFFS = {
     "Aérien": {Orange:160.00, SFR:null},
     "Souterrain": {Orange:112.00, SFR:null},
@@ -560,11 +570,12 @@
     catch(e){ return false; }
   }
 
-  var entries = safeGet(STORE_KEY, []);
+  var currentTech = safeGet(TECH_KEY, "Brendan");
+  var entries = safeGet(STORE_KEY + "_" + currentTech, []);
   var tariffs = safeGet(TARIFF_KEY, DEFAULT_TARIFFS);
   TYPOS.forEach(function(t){ if(!tariffs[t]) tariffs[t] = {Orange:0, SFR:null}; });
 
-  var form = { typo: "", statut: null, op: null, solo: null };
+  var form = { tech: currentTech, typo: "", statut: null, op: null, solo: null };
   var viewedMonth = new Date();
 
   function fmtEuro(n){
@@ -587,29 +598,58 @@
     setTimeout(function(){ el.classList.remove('show'); }, 2200);
   }
 
+  function parseISO(dateStr) {
+    if (!dateStr) return new Date();
+    if (typeof dateStr === "string" && dateStr.indexOf('-') !== -1) {
+      var p = dateStr.split('T')[0].split('-');
+      return new Date(parseInt(p[0],10), parseInt(p[1],10) - 1, parseInt(p[2],10));
+    }
+    if (typeof dateStr === "string" && dateStr.indexOf('/') !== -1) {
+      var p = dateStr.split('/');
+      return new Date(parseInt(p[2],10), parseInt(p[1],10) - 1, parseInt(p[0],10));
+    }
+    return new Date(dateStr);
+  }
+
   function loadEntries(){
     renderToday();
     renderHistorique();
 
     if (!SCRIPT_URL) return;
-    toast("Synchronisation...");
-    fetch(SCRIPT_URL)
+    toast("Synchro (" + currentTech + ")...");
+    
+    var url = SCRIPT_URL + "?tech=" + encodeURIComponent(currentTech);
+    fetch(url)
       .then(function(r){ return r.json(); })
       .then(function(data){
-        if (Array.isArray(data) && data.length > 0){
+        if (Array.isArray(data)){
           var map = {};
-          entries.forEach(function(e){ map[e.id] = e; });
-          data.forEach(function(e){ map[e.id] = e; });
+          data.forEach(function(e){ map[e.num || e.id] = e; });
           entries = Object.values(map);
 
-          safeSet(STORE_KEY, entries);
+          safeSet(STORE_KEY + "_" + currentTech, entries);
           renderToday();
           renderHistorique();
-          toast("À jour");
+          toast("À jour (" + currentTech + ")");
         }
       })
       .catch(function(){ toast("Mode local (hors-ligne)"); });
   }
+
+  // Initialisation bouton Technicien
+  var techWrap = document.getElementById('f-tech');
+  techWrap.querySelectorAll('button').forEach(function(b){
+    if (b.dataset.val === currentTech) b.classList.add('selected');
+    b.addEventListener('click', function(){
+      currentTech = b.dataset.val;
+      form.tech = currentTech;
+      safeSet(TECH_KEY, currentTech);
+      techWrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
+      b.classList.add('selected');
+      entries = safeGet(STORE_KEY + "_" + currentTech, []);
+      loadEntries();
+    });
+  });
 
   var titles = { saisie: "Nouvelle intervention", historique: "Historique", tarifs: "Tarifs" };
   document.querySelectorAll('.tabbar button').forEach(function(btn){
@@ -625,7 +665,6 @@
     });
   });
 
-  // Remplissage du Select Typologie
   var typoSelect = document.getElementById('f-typo');
   TYPOS.forEach(function(t){
     var opt = document.createElement('option');
@@ -694,7 +733,7 @@
   document.getElementById('f-date').value = todayISO();
 
   function resetForm(){
-    form = { typo: "", statut: null, op: null, solo: null };
+    form = { tech: currentTech, typo: "", statut: null, op: null, solo: null };
     document.getElementById('f-date').value = todayISO();
     document.getElementById('f-num').value = "";
     document.getElementById('f-addr').value = "";
@@ -726,19 +765,18 @@
     var montant = computeMontant(form.typo, form.statut, form.op);
     var entry = {
       id: Date.now() + "-" + Math.random().toString(36).slice(2,7),
+      tech: currentTech,
       date: date, num: num, addr: addr,
       typo: form.typo, statut: form.statut, op: form.op, solo: form.solo,
       montant: montant, comment: comment
     };
 
-    // 1. Sauvegarde locale immédiate
     entries.push(entry);
-    safeSet(STORE_KEY, entries);
+    safeSet(STORE_KEY + "_" + currentTech, entries);
     renderToday();
     resetForm();
     toast("Enregistré en local");
 
-    // 2. Envoi serveur en arrière-plan
     fetch(SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
@@ -746,16 +784,17 @@
       body: JSON.stringify(entry)
     }).then(function(){
       toast("Synchronisé sur Sheets");
+      setTimeout(loadEntries, 1200);
     }).catch(function(){
       toast("Sauvegardé (hors-ligne)");
     });
   });
 
-  function deleteEntry(id){
+  function deleteEntry(id, num){
     if(!confirm("Supprimer cette intervention ?")) return;
     
-    entries = entries.filter(function(e){ return e.id !== id; });
-    safeSet(STORE_KEY, entries);
+    entries = entries.filter(function(e){ return e.id !== id && e.num !== num; });
+    safeSet(STORE_KEY + "_" + currentTech, entries);
     renderToday();
     renderHistorique();
     toast("Supprimé en local");
@@ -764,18 +803,17 @@
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: "delete", id: id })
+      body: JSON.stringify({ action: "delete", id: id, num: num, tech: currentTech })
     });
   }
 
-  // Carte Accordéon Réduite à 1 Ligne
   function entryCard(e){
     var div = document.createElement('div');
     div.className = 'entry';
     var statutClass = e.statut === "Réussite" ? "ok" : "bad";
     
     var addrHtml = e.addr ? '<div class="entry-addr">📍 ' + escapeHtml(e.addr) + '</div>' : '<div class="entry-addr"><em>Aucune adresse saisie</em></div>';
-    var gpsBtnHtml = e.addr ? '<a class="btn-gps" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(e.addr) + '" target="_blank">🗺️ Ouvrir Maps</a>' : '';
+    var gpsBtnHtml = e.addr ? '<a class="btn-gps" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(e.addr) + '" target="_blank">🗺️ Maps</a>' : '';
     var commentHtml = e.comment ? '<div class="entry-comment">💬 ' + escapeHtml(e.comment) + '</div>' : '';
 
     div.innerHTML =
@@ -794,24 +832,23 @@
         commentHtml +
         '<div class="entry-footer">' +
           '<div class="entry-tags">' +
-            '<span class="tag ' + statutClass + '">' + e.statut + '</span>' +
-            '<span class="tag neutral">' + e.solo + '</span>' +
+            '<span class="tag ' + statutClass + '">' + escapeHtml(e.statut) + '</span>' +
+            '<span class="tag neutral">' + escapeHtml(e.solo) + '</span>' +
           '</div>' +
           '<div style="display:flex; align-items:center; gap:8px;">' +
             gpsBtnHtml +
-            '<button class="entry-del" data-id="' + e.id + '">Supprimer</button>' +
+            '<button class="entry-del" data-id="' + e.id + '" data-num="' + e.num + '">Supprimer</button>' +
           '</div>' +
         '</div>' +
       '</div>';
 
-    // Toggle accordéon au clic sur le header
     div.querySelector('.entry-header').addEventListener('click', function(){
       div.classList.toggle('open');
     });
 
     div.querySelector('.entry-del').addEventListener('click', function(ev){
       ev.stopPropagation();
-      deleteEntry(e.id);
+      deleteEntry(e.id, e.num);
     });
 
     return div;
@@ -864,7 +901,7 @@
     currentMonthLabel = MOIS_FR[m] + "_" + y;
 
     var monthEntries = entries.filter(function(e){
-      var d = new Date(e.date + "T00:00:00");
+      var d = parseISO(e.date);
       return d.getFullYear() === y && d.getMonth() === m;
     });
 
@@ -915,115 +952,103 @@
 
       var header = document.createElement('div');
       header.className = 'daygroup-header';
-      header.innerHTML = '<h3>' + fmtDateFR(date) + '</h3><span class="daygroup-total">Jour : ' + fmtEuro(dayTot) + '</span>';
+      header.innerHTML = '<h3>' + fmtDateFR(date) + '</h3><span class="daygroup-total">' + fmtEuro(dayTot) + '</span>';
       group.appendChild(header);
 
-      var cols = document.createElement('div');
-      cols.className = 'day-cols';
+      var dayCols = document.createElement('div');
+      dayCols.className = 'day-cols';
 
-      var colOrange = document.createElement('div');
-      colOrange.className = 'col-op';
-      var orangeEntries = dayItems.filter(function(e){ return e.op === "Orange"; });
-      var orangeTot = orangeEntries.reduce(function(s,e){ return s + (e.montant||0); }, 0);
-      colOrange.innerHTML = '<div class="col-op-header orange"><span>Orange</span><span>' + fmtEuro(orangeTot) + '</span></div>';
+      ["Orange", "SFR"].forEach(function(opName){
+        var col = document.createElement('div');
+        col.className = 'col-op';
+        var opItems = dayItems.filter(function(x){ return x.op === opName; });
+        var opTot = opItems.reduce(function(s,e){ return s + (e.montant||0); }, 0);
+        var opClass = opName === "Orange" ? "orange" : "sfr";
 
-      if (orangeEntries.length === 0) {
-        var emp = document.createElement('div');
-        emp.className = 'col-empty'; emp.textContent = "Aucune";
-        colOrange.appendChild(emp);
-      } else {
-        orangeEntries.forEach(function(en){ colOrange.appendChild(entryCard(en)); });
-      }
+        col.innerHTML = '<div class="col-op-header ' + opClass + '"><span>' + opName + '</span><span>' + fmtEuro(opTot) + '</span></div>';
 
-      var colSFR = document.createElement('div');
-      colSFR.className = 'col-op';
-      var sfrEntries = dayItems.filter(function(e){ return e.op === "SFR"; });
-      var sfrTot = sfrEntries.reduce(function(s,e){ return s + (e.montant||0); }, 0);
-      colSFR.innerHTML = '<div class="col-op-header sfr"><span>SFR</span><span>' + fmtEuro(sfrTot) + '</span></div>';
+        if (opItems.length === 0) {
+          col.innerHTML += '<div class="col-empty">Aucune int.</div>';
+        } else {
+          opItems.forEach(function(item){
+            col.appendChild(entryCard(item));
+          });
+        }
+        dayCols.appendChild(col);
+      });
 
-      if (sfrEntries.length === 0) {
-        var emp = document.createElement('div');
-        emp.className = 'col-empty'; emp.textContent = "Aucune";
-        colSFR.appendChild(emp);
-      } else {
-        sfrEntries.forEach(function(en){ colSFR.appendChild(entryCard(en)); });
-      }
-
-      cols.appendChild(colOrange);
-      cols.appendChild(colSFR);
-      group.appendChild(cols);
-
+      group.appendChild(dayCols);
       list.appendChild(group);
     });
   }
 
+  document.getElementById('exportXlsx').addEventListener('click', function(){
+    if (!currentMonthEntries || currentMonthEntries.length === 0) {
+      toast("Aucune donnée à exporter");
+      return;
+    }
+    var rows = currentMonthEntries.map(function(e){
+      return {
+        "Date": fmtDateFR(e.date),
+        "N° intervention": e.num,
+        "Adresse client": e.addr,
+        "Typologie": e.typo,
+        "Résultat": e.statut,
+        "Opérateur": e.op,
+        "Solo / Binôme": e.solo,
+        "Montant (€)": e.montant,
+        "Commentaire": e.comment
+      };
+    });
+    var ws = XLSX.utils.json_to_sheet(rows);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Interventions");
+    XLSX.writeFile(wb, "Raccordements_" + currentTech + "_" + currentMonthLabel + ".xlsx");
+  });
+
   function renderTarifs(){
-    var body = document.getElementById('tariffRows');
-    body.innerHTML = "";
+    var tbody = document.getElementById('tariffRows');
+    tbody.innerHTML = "";
     TYPOS.forEach(function(t){
       var tr = document.createElement('tr');
-      var row = tariffs[t];
-      tr.innerHTML =
-        '<td>' + t + '</td>' +
-        '<td><input type="text" inputmode="decimal" data-typo="' + t + '" data-op="Orange" value="' + (row.Orange ?? '') + '"></td>' +
-        '<td><input type="text" inputmode="decimal" data-typo="' + t + '" data-op="SFR" value="' + (row.SFR ?? '') + '"></td>';
-      body.appendChild(tr);
+      var tOrange = tariffs[t] && tariffs[t].Orange !== null ? tariffs[t].Orange : "";
+      var tSFR = tariffs[t] && tariffs[t].SFR !== null ? tariffs[t].SFR : "";
+
+      tr.innerHTML = '<td><strong>' + escapeHtml(t) + '</strong></td>' +
+        '<td><input type="number" step="0.01" data-typo="' + escapeHtml(t) + '" data-op="Orange" value="' + tOrange + '"></td>' +
+        '<td><input type="number" step="0.01" data-typo="' + escapeHtml(t) + '" data-op="SFR" value="' + tSFR + '"></td>';
+      tbody.appendChild(tr);
     });
-    body.querySelectorAll('input').forEach(function(inp){
+
+    tbody.querySelectorAll('input').forEach(function(inp){
       inp.addEventListener('change', function(){
-        var v = parseFloat(inp.value.replace(',', '.'));
-        var t = inp.dataset.typo, op = inp.dataset.op;
-        tariffs[t][op] = isNaN(v) ? null : v;
+        var typ = inp.dataset.typo;
+        var op = inp.dataset.op;
+        var val = parseFloat(inp.value);
+        if (isNaN(val)) val = null;
+        if (!tariffs[typ]) tariffs[typ] = {};
+        tariffs[typ][op] = val;
         safeSet(TARIFF_KEY, tariffs);
-        toast("Tarif mis à jour");
-        entries.forEach(function(e){
-          if (e.statut === "Réussite" && e.typo === t && e.op === op){
-            e.montant = tariffs[t][op] || 0;
-          }
-        });
-        safeSet(STORE_KEY, entries);
+        toast("Tarifs mis à jour");
+        updatePreview();
       });
     });
   }
 
   document.getElementById('wipeAll').addEventListener('click', function(){
-    if (confirm("Vider la mémoire locale de l'appareil ?")){
+    if (confirm("Réinitialiser les données locales (" + currentTech + ") ?")){
+      localStorage.removeItem(STORE_KEY + "_" + currentTech);
       entries = [];
-      safeSet(STORE_KEY, entries);
       renderToday();
       renderHistorique();
-      toast("Mémoire réinitialisée");
+      toast("Mémoire locale réinitialisée");
     }
   });
 
-  document.getElementById('exportXlsx').addEventListener('click', function(){
-    if (typeof XLSX === "undefined"){ toast("Module Excel indisponible"); return; }
-    if (currentMonthEntries.length === 0){ toast("Rien à exporter"); return; }
-
-    var rows = currentMonthEntries.map(function(e){
-      return {
-        "Date": fmtDateFR(e.date),
-        "N° intervention": e.num,
-        "Adresse client": e.addr || "",
-        "Typologie raccordement": e.typo,
-        "Réussite / Échec": e.statut,
-        "Opérateur": e.op,
-        "Solo / Binôme": e.solo,
-        "Montant (€)": e.montant || 0,
-        "Commentaire": e.comment || ""
-      };
-    });
-
-    var ws = XLSX.utils.json_to_sheet(rows);
-    var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Récap");
-    XLSX.writeFile(wb, "raccordements_" + currentMonthLabel + ".xlsx");
-    toast("Fichier Excel téléchargé");
+  document.addEventListener("DOMContentLoaded", function(){
+    loadEntries();
   });
 
-  updatePreview();
-  updateNumHint();
-  loadEntries();
 })();
 </script>
 </body>
