@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SpeedConnect - Raccordements</title>
+<title>Raccordements</title>
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,20 +11,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
-    --bg: #0F172A;
-    --surface: #1E293B;
-    --surface-alt: #111827;
-    --border: #334155;
+    --bg: #070D19;
+    --surface: rgba(15, 23, 42, 0.75);
+    --surface-alt: rgba(30, 41, 59, 0.75);
+    --border: rgba(51, 65, 85, 0.6);
     --ink: #F8FAFC;
     --ink-muted: #94A3B8;
-    --accent: #00C2FF;
-    --accent-hover: #38BDF8;
+    --accent: rgba(30, 58, 138, 0.75);
+    --accent-light: rgba(59, 130, 246, 0.75);
+    --accent-text: #60A5FA;
     --success: #22C55E;
     --success-bg: rgba(34, 197, 94, 0.15);
     --danger: #EF4444;
     --danger-bg: rgba(239, 68, 68, 0.15);
-    --orange: #F97316;
-    --sfr: #3B82F6;
     --radius: 8px;
     --font-mono: 'IBM Plex Mono', monospace;
     --font-sans: 'IBM Plex Sans', sans-serif;
@@ -46,7 +45,8 @@
     position: sticky;
     top: 0;
     z-index: 20;
-    background: var(--surface-alt);
+    background: var(--surface);
+    backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--border);
     padding: 12px 16px;
     display: flex;
@@ -57,10 +57,7 @@
     font-family: var(--font-mono);
     font-weight: 700;
     font-size: 16px;
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    color: var(--accent-text);
   }
   .header-actions { display: flex; gap: 8px; align-items: center; }
 
@@ -70,6 +67,7 @@
 
   .card {
     background: var(--surface);
+    backdrop-filter: blur(6px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 14px;
@@ -80,7 +78,7 @@
   .field label {
     display: block;
     font-size: 11px;
-    color: var(--accent);
+    color: var(--accent-text);
     margin-bottom: 4px;
     font-weight: 600;
     text-transform: uppercase;
@@ -93,19 +91,16 @@
   .field textarea {
     width: 100%;
     padding: 9px 12px;
-    border: 1px solid var(--accent);
+    border: 1px solid var(--border);
     border-radius: 6px;
     background: var(--surface-alt);
     color: var(--ink);
     outline: none;
   }
   .field input:focus, .field select:focus {
-    box-shadow: 0 0 0 2px rgba(0, 194, 255, 0.3);
+    border-color: var(--accent-text);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
   }
-
-  .fieldhint { font-size: 11px; color: var(--ink-muted); margin-top: 4px; }
-  .fieldhint.bad { color: var(--danger); }
-  .fieldhint.ok { color: var(--success); }
 
   .seg { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
   .seg button {
@@ -121,12 +116,11 @@
   }
   .seg button:last-child { border-right: none; }
   .seg button.selected {
-    background: var(--surface);
+    background: var(--accent);
     color: #FFF;
-    border-bottom: 2px solid var(--accent);
   }
-  .seg button.selected.ok { background: var(--success-bg); color: var(--success); border-bottom-color: var(--success); }
-  .seg button.selected.bad { background: var(--danger-bg); color: var(--danger); border-bottom-color: var(--danger); }
+  .seg button.selected.ok { background: var(--success-bg); color: var(--success); }
+  .seg button.selected.bad { background: var(--danger-bg); color: var(--danger); }
 
   .preview {
     display: flex;
@@ -138,15 +132,15 @@
     border: 1px solid var(--border);
     margin: 12px 0;
   }
-  .preview .amount { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--accent); }
+  .preview .amount { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--accent-text); }
 
   .btn-primary {
     width: 100%;
     padding: 12px;
     border: none;
     border-radius: 6px;
-    background: var(--accent);
-    color: var(--surface-alt);
+    background: var(--accent-light);
+    color: #FFF;
     font-weight: 700;
     font-size: 14px;
     cursor: pointer;
@@ -162,7 +156,6 @@
     cursor: pointer;
   }
 
-  /* speedconnect style table */
   .filter-bar {
     display: flex;
     align-items: center;
@@ -173,17 +166,17 @@
   }
   .date-pill {
     background: var(--surface-alt);
-    border: 1px solid var(--accent);
+    border: 1px solid var(--border);
     padding: 6px 14px;
     border-radius: 20px;
     font-family: var(--font-mono);
     font-size: 12px;
-    color: var(--accent);
+    color: var(--accent-text);
   }
   .month-total-pill {
-    background: rgba(0, 194, 255, 0.1);
-    border: 1px solid var(--accent);
-    color: var(--accent);
+    background: var(--accent);
+    border: 1px solid var(--border);
+    color: var(--accent-text);
     padding: 6px 14px;
     border-radius: 20px;
     font-family: var(--font-mono);
@@ -194,39 +187,34 @@
   .table-container {
     overflow-x: auto;
     background: var(--surface);
+    backdrop-filter: blur(6px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
   }
-  table.speed-table {
+  table.custom-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 12px;
     text-align: left;
     white-space: nowrap;
   }
-  table.speed-table th {
+  table.custom-table th {
     background: var(--surface-alt);
-    color: var(--accent);
-    padding: 10px 8px;
-    border-bottom: 2px solid var(--border);
+    color: var(--accent-text);
+    padding: 10px 10px;
+    border-bottom: 1px solid var(--border);
     font-weight: 700;
     font-size: 11px;
     text-transform: uppercase;
   }
-  table.speed-table td {
-    padding: 10px 8px;
+  table.custom-table td {
+    padding: 10px 10px;
     border-bottom: 1px solid var(--border);
     vertical-align: middle;
   }
-  table.speed-table tr:last-child td { border-bottom: none; }
-  table.speed-table tr:hover { background: rgba(255, 255, 255, 0.03); cursor: pointer; }
+  table.custom-table tr:last-child td { border-bottom: none; }
+  table.custom-table tr:hover { background: rgba(255, 255, 255, 0.03); cursor: pointer; }
 
-  .num-link {
-    color: var(--accent);
-    font-family: var(--font-mono);
-    font-weight: 700;
-    text-decoration: underline;
-  }
   .badge-statut { font-size: 14px; }
   .badge-typo {
     background: var(--surface-alt);
@@ -251,7 +239,7 @@
     color: #FFF;
   }
 
-  /* MODAL DE DETAIL (SPEEDCONNECT STYLE) */
+  /* MODAL DE DETAIL */
   .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -265,7 +253,8 @@
   .modal-overlay.active { display: flex; }
   .modal-card {
     background: var(--surface);
-    border: 1px solid var(--accent);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
     width: 100%;
     max-width: 500px;
@@ -281,14 +270,15 @@
     border-bottom: 1px solid var(--border);
     padding-bottom: 10px;
   }
-  .modal-title { font-family: var(--font-mono); font-size: 16px; font-weight: 700; color: var(--accent); }
+  .modal-title { font-family: var(--font-mono); font-size: 15px; font-weight: 700; color: var(--accent-text); }
 
   /* TABBAR BOTTOM */
   nav.tabbar {
     position: fixed;
     bottom: 0; left: 0; right: 0;
     display: flex;
-    background: var(--surface-alt);
+    background: var(--surface);
+    backdrop-filter: blur(10px);
     border-top: 1px solid var(--border);
     z-index: 20;
   }
@@ -299,14 +289,14 @@
     background: none; border: none; color: var(--ink-muted);
     cursor: pointer; font-size: 10px; font-weight: 600;
   }
-  .tabbar button.active { color: var(--accent); }
+  .tabbar button.active { color: var(--accent-text); }
   .tabbar svg { width: 18px; height: 18px; }
 
   .toast {
     position: fixed;
     bottom: 60px; left: 50%;
     transform: translateX(-50%) translateY(20px);
-    background: var(--accent); color: var(--surface-alt);
+    background: var(--accent-light); color: #FFF;
     padding: 8px 16px; border-radius: 20px;
     font-size: 12px; font-weight: 700;
     opacity: 0; pointer-events: none;
@@ -318,7 +308,7 @@
 <body>
 
 <header class="top">
-  <div class="brand">⚡ SpeedConnect</div>
+  <div class="brand">Raccordements</div>
   <div class="header-actions">
     <button class="btn-ghost" id="reloadBtn">🔄 Synchro</button>
   </div>
@@ -335,15 +325,13 @@
       <div class="field">
         <label>Opérateur</label>
         <div class="seg" id="f-op">
-          <button data-val="Orange">Orange</button>
+          <button data-val="Orange" class="selected">Orange</button>
           <button data-val="SFR">SFR</button>
-          <button data-val="FREE">FREE</button>
         </div>
       </div>
       <div class="field">
         <label for="f-num">N° intervention / Réf</label>
-        <input type="text" id="f-num" placeholder="Ex: JETON15759005 ou INT-0001">
-        <div class="fieldhint" id="f-num-hint">Sélectionne l'opérateur.</div>
+        <input type="text" id="f-num" placeholder="Ex : 0468934875">
       </div>
       <div class="field">
         <label for="f-typo">Typologie raccordement</label>
@@ -362,7 +350,7 @@
       <div class="field">
         <label>Résultat</label>
         <div class="seg" id="f-statut">
-          <button data-val="Réussite" class="ok">👍 Succès</button>
+          <button data-val="Réussite" class="ok selected">👍 Succès</button>
           <button data-val="Échec" class="bad">❌ Échec</button>
         </div>
       </div>
@@ -370,12 +358,12 @@
       <div class="field">
         <label>Mode de travail</label>
         <div class="seg" id="f-solo">
-          <button data-val="Solo">Solo</button>
+          <button data-val="Solo" class="selected">Solo</button>
           <button data-val="Binôme">Binôme</button>
         </div>
       </div>
 
-      <div class="field" id="wrap-tech-solo" style="display:none;">
+      <div class="field" id="wrap-tech-solo" style="display:block;">
         <label for="f-tech-solo">Technicien en Solo</label>
         <select id="f-tech-solo">
           <option value="Brendan">Brendan</option>
@@ -385,7 +373,7 @@
 
       <div class="field">
         <label for="f-comment">Commentaire</label>
-        <input type="text" id="f-comment" placeholder="Tube/libre hs, remarques...">
+        <input type="text" id="f-comment" placeholder="Remarques, détails...">
       </div>
 
       <div class="preview">
@@ -402,13 +390,6 @@
       <div class="field">
         <label for="fuel-date">Date du plein</label>
         <input type="date" id="fuel-date">
-      </div>
-      <div class="field">
-        <label>Technicien</label>
-        <div class="seg" id="fuel-tech">
-          <button data-val="Brendan" class="selected">Brendan</button>
-          <button data-val="Hamlili">Hamlili</button>
-        </div>
       </div>
       <div class="field">
         <label for="fuel-amount">Montant Carburant (€)</label>
@@ -439,28 +420,27 @@
     <div class="filter-bar">
       <div style="display:flex; gap:6px; align-items:center;">
         <button class="btn-ghost" id="prevMonth">‹</button>
-        <div class="date-pill" id="monthLabel">Septembre 2026</div>
+        <div class="date-pill" id="monthLabel">Mois</div>
         <button class="btn-ghost" id="nextMonth">›</button>
       </div>
-      <div class="month-total-pill" id="totalGlobalBadge">Septembre : 0,00 €</div>
+      <div class="month-total-pill" id="totalGlobalBadge">Total : 0,00 €</div>
     </div>
 
     <div class="field" style="margin-bottom:10px;">
-      <input type="text" id="histSearch" placeholder="🔍 Rechercher N°, Réf, Typologie, Adresse...">
+      <input type="text" id="histSearch" placeholder="🔍 Rechercher Réf, Typologie, Adresse...">
     </div>
 
     <div class="table-container">
-      <table class="speed-table">
+      <table class="custom-table">
         <thead>
           <tr>
-            <th>N°</th>
             <th>Ref</th>
             <th>Statut</th>
             <th>Typologie</th>
             <th>Zone</th>
             <th>Opérateur</th>
             <th>Tarif</th>
-            <th>+/-</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="speedTableBody">
@@ -475,10 +455,10 @@
     <div class="card">
       <table style="width:100%; border-collapse:collapse;">
         <thead>
-          <tr style="border-bottom:1px solid var(--border); text-align:left; color:var(--accent);">
+          <tr style="border-bottom:1px solid var(--border); text-align:left; color:var(--accent-text);">
             <th style="padding:8px;">Typologie</th>
             <th style="padding:8px;">Orange</th>
-            <th style="padding:8px;">SFR / FREE</th>
+            <th style="padding:8px;">SFR</th>
           </tr>
         </thead>
         <tbody id="tariffRows"></tbody>
@@ -491,7 +471,7 @@
 <div class="modal-overlay" id="detailModal">
   <div class="modal-card">
     <div class="modal-header">
-      <div class="modal-title" id="modalTitle">Intervention 🔒</div>
+      <div class="modal-title" id="modalTitle">Réf</div>
       <button class="btn-ghost" id="closeModal">✕ Fermer</button>
     </div>
     <div class="field">
@@ -507,7 +487,7 @@
       <input type="text" id="m-num">
     </div>
     <div class="field">
-      <label>Planning :</label>
+      <label>Technicien :</label>
       <input type="text" id="m-planning">
     </div>
     <div class="field">
@@ -559,21 +539,18 @@
 
   var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUZ8Va_VV_J15W6gH26Xxq_MimoGbLfU_6cUUfxHhiRMqOMnBghSyWpkAx90zRtk1q/exec";
 
-  var TYPOS = ["Aérien", "Souterrain", "Immeuble", "PLP", "SAV", "PLP sans client", "FACADE", "APPARTEMENT", "Brassage PM"];
-  var STORE_KEY = "raccordements_entries_v5";
-  var FUEL_STORE_KEY = "raccordements_fuel_v5";
-  var TARIFF_KEY = "raccordements_tarifs_v5";
+  var TYPOS = ["Aérien", "Souterrain", "Immeuble", "PLP", "PLP sans client", "SAV"];
+  var STORE_KEY = "raccordements_entries_v6";
+  var FUEL_STORE_KEY = "raccordements_fuel_v6";
+  var TARIFF_KEY = "raccordements_tarifs_v6";
 
   var DEFAULT_TARIFFS = {
     "Aérien": {Orange:160.00, SFR:140.50},
     "Souterrain": {Orange:112.00, SFR:85.00},
     "Immeuble": {Orange:54.40, SFR:50.00},
     "PLP": {Orange:36.00, SFR:25.20},
-    "SAV": {Orange:36.00, SFR:23.40},
     "PLP sans client": {Orange:12.00, SFR:12.00},
-    "FACADE": {Orange:60.00, SFR:50.00},
-    "APPARTEMENT": {Orange:50.00, SFR:45.00},
-    "Brassage PM": {Orange:20.00, SFR:15.00}
+    "SAV": {Orange:36.00, SFR:23.40}
   };
 
   function safeGet(key, fallback){
@@ -592,8 +569,7 @@
   var fuelEntries = safeGet(FUEL_STORE_KEY, []);
   var tariffs = safeGet(TARIFF_KEY, DEFAULT_TARIFFS);
 
-  var form = { typo: "", statut: "Réussite", op: "FREE", solo: "Solo", techSolo: "Brendan" };
-  var fuelForm = { tech: "Brendan" };
+  var form = { typo: "", statut: "Réussite", op: "Orange", solo: "Solo", techSolo: "Brendan" };
   var viewedMonth = new Date();
   var selectedModalEntry = null;
 
@@ -602,7 +578,6 @@
     return n.toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + " €";
   }
 
-  // Parseur Universel de Date ultra-robuste
   function parseISO(dateVal) {
     if (!dateVal) return new Date();
     if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? new Date() : dateVal;
@@ -651,329 +626,4 @@
     return d.getFullYear() + "-" + m + "-" + day;
   }
 
-  function fmtDateFR(dateVal) {
-    var d = parseISO(dateVal);
-    var day = String(d.getDate()).padStart(2, '0');
-    var m = String(d.getMonth() + 1).padStart(2, '0');
-    return day + "/" + m + "/" + d.getFullYear();
-  }
-
-  function toast(msg){
-    var el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    setTimeout(function(){ el.classList.remove('show'); }, 2200);
-  }
-
-  function loadEntries(){
-    renderHistorique();
-    if (!SCRIPT_URL) return;
-    toast("Synchro (" + currentViewTech + ")...");
-
-    var url = SCRIPT_URL + "?tech=" + encodeURIComponent(currentViewTech) + "&_t=" + Date.now();
-    fetch(url, { cache: "no-store" })
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        if (Array.isArray(data)){
-          var map = {};
-          data.forEach(function(e){ map[e.num || e.id] = e; });
-          entries = sortByDateDesc(Object.values(map));
-          safeSet(STORE_KEY + "_" + currentViewTech, entries);
-          renderHistorique();
-          toast("À jour (" + currentViewTech + ")");
-        }
-      })
-      .catch(function(){ toast("Mode local (hors-ligne)"); });
-  }
-  window.loadEntries = loadEntries;
-
-  function loadFuel(){
-    renderCarburant();
-    if (!SCRIPT_URL) return;
-    fetch(SCRIPT_URL + "?type=fuel&_t=" + Date.now(), { cache: "no-store" })
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        if (Array.isArray(data)){
-          fuelEntries = sortByDateDesc(data);
-          safeSet(FUEL_STORE_KEY, fuelEntries);
-          renderCarburant();
-        }
-      });
-  }
-  window.loadFuel = loadFuel;
-
-  // Gestion des onglets
-  document.querySelectorAll('.tabbar button').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      document.querySelectorAll('.tabbar button').forEach(function(b){ b.classList.remove('active'); });
-      btn.classList.add('active');
-      var v = btn.getAttribute('data-view');
-      document.querySelectorAll('.view').forEach(function(s){ s.classList.remove('active'); });
-      document.getElementById('view-' + v).classList.add('active');
-      if (v === 'carburant') loadFuel();
-      if (v === 'historique') renderHistorique();
-      if (v === 'tarifs') renderTarifs();
-    });
-  });
-
-  // Remplissage Typologies
-  var typoSelect = document.getElementById('f-typo');
-  TYPOS.forEach(function(t){
-    var opt = document.createElement('option');
-    opt.value = t; opt.textContent = t;
-    typoSelect.appendChild(opt);
-  });
-  typoSelect.addEventListener('change', function(){ form.typo = typoSelect.value; updatePreview(); });
-
-  function wireSeg(id, key, callback){
-    var wrap = document.getElementById(id);
-    wrap.querySelectorAll('button').forEach(function(b){
-      b.addEventListener('click', function(){
-        form[key] = b.dataset.val;
-        wrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
-        b.classList.add('selected');
-        if (callback) callback(b.dataset.val);
-        updatePreview();
-      });
-    });
-  }
-  wireSeg('f-statut', 'statut');
-  wireSeg('f-op', 'op');
-  wireSeg('f-solo', 'solo', function(v){
-    document.getElementById('wrap-tech-solo').style.display = (v === 'Solo') ? 'block' : 'none';
-  });
-
-  function computeMontant(typo, statut, op){
-    if (!typo || statut === "Échec") return 0;
-    var row = tariffs[typo];
-    if (!row) return 0;
-    var v = (op === "Orange") ? row.Orange : row.SFR;
-    return v || 0;
-  }
-
-  function updatePreview(){
-    var m = computeMontant(form.typo, form.statut, form.op);
-    document.getElementById('f-preview').textContent = fmtEuro(m);
-  }
-
-  document.getElementById('f-date').value = toISODate(new Date());
-  document.getElementById('fuel-date').value = toISODate(new Date());
-
-  // Enregistrement de l'intervention
-  document.getElementById('f-save').addEventListener('click', function(){
-    var date = document.getElementById('f-date').value;
-    var num = document.getElementById('f-num').value.trim();
-    var zone = document.getElementById('f-zone').value.trim();
-    var addr = document.getElementById('f-addr').value.trim();
-    var comment = document.getElementById('f-comment').value.trim();
-
-    if (!date || !num || !form.typo){
-      toast("Complète les champs requis");
-      return;
-    }
-
-    var montant = computeMontant(form.typo, form.statut, form.op);
-
-    var entry = {
-      id: "INT-" + Math.floor(10000 + Math.random() * 90000),
-      num: num,
-      date: date,
-      zone: zone || "66",
-      addr: addr,
-      typo: form.typo,
-      statut: form.statut,
-      op: form.op,
-      solo: form.solo,
-      techSolo: document.getElementById('f-tech-solo').value,
-      montant: montant,
-      comment: comment
-    };
-
-    entries.push(entry);
-    entries = sortByDateDesc(entries);
-    safeSet(STORE_KEY + "_" + currentViewTech, entries);
-    renderHistorique();
-    toast("Intervention ajoutée !");
-
-    fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(entry)
-    });
-  });
-
-  // Affichage Historique SpeedConnect
-  var MOIS_FR = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
-
-  function renderHistorique(){
-    var y = viewedMonth.getFullYear(), m = viewedMonth.getMonth();
-    document.getElementById('monthLabel').textContent = MOIS_FR[m] + " " + y;
-
-    var monthEntries = entries.filter(function(e){
-      var d = parseISO(e.date);
-      return d.getFullYear() === y && d.getMonth() === m;
-    });
-
-    var q = document.getElementById('histSearch').value.trim().toLowerCase();
-    if (q) {
-      monthEntries = monthEntries.filter(function(e){
-        return (e.num + " " + (e.comment||"") + " " + e.typo + " " + e.op).toLowerCase().indexOf(q) !== -1;
-      });
-    }
-
-    monthEntries = sortByDateDesc(monthEntries);
-
-    var totMois = monthEntries.reduce(function(s,e){ return s + (e.montant||0); }, 0);
-    document.getElementById('totalGlobalBadge').textContent = MOIS_FR[m] + " : " + fmtEuro(totMois);
-
-    var tbody = document.getElementById('speedTableBody');
-    tbody.innerHTML = "";
-
-    if (monthEntries.length === 0){
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--ink-muted); padding:20px;">Aucune intervention trouvée.</td></tr>';
-      return;
-    }
-
-    monthEntries.forEach(function(e, idx){
-      var tr = document.createElement('tr');
-      var iconStatut = e.statut === "Réussite" ? "👍" : "❌";
-
-      tr.innerHTML = 
-        '<td><span class="num-link">' + (17600 + idx) + '</span></td>' +
-        '<td style="font-family:var(--font-mono);">' + escapeHtml(e.num) + '</td>' +
-        '<td class="badge-statut">' + iconStatut + '</td>' +
-        '<td><span class="badge-typo">' + escapeHtml(e.typo) + '</span></td>' +
-        '<td>' + escapeHtml(e.zone || "66") + '</td>' +
-        '<td><span class="badge-op">' + escapeHtml(e.op) + '</span></td>' +
-        '<td class="tarif-val">' + fmtEuro(e.montant) + '</td>' +
-        '<td><button class="btn-ghost" style="padding:2px 6px;">✏️</button></td>';
-
-      tr.addEventListener('click', function(){ openModal(e); });
-      tbody.appendChild(tr);
-    });
-  }
-
-  // Modal de détail / édition SpeedConnect
-  function openModal(e){
-    selectedModalEntry = e;
-    document.getElementById('modalTitle').textContent = "Intervention " + escapeHtml(e.num) + " 🔒";
-    document.getElementById('m-zone').value = e.zone || "66 FREE";
-    document.getElementById('m-date').value = fmtDateFR(e.date);
-    document.getElementById('m-num').value = e.num;
-    document.getElementById('m-planning').value = e.techSolo || currentViewTech;
-    document.getElementById('m-typo').value = e.typo;
-    document.getElementById('m-comment').value = e.comment || "";
-
-    var seg = document.getElementById('m-statut-seg');
-    seg.querySelectorAll('button').forEach(function(b){
-      b.classList.toggle('selected', b.dataset.val === e.statut);
-    });
-
-    document.getElementById('detailModal').classList.add('active');
-  }
-
-  document.getElementById('closeModal').addEventListener('click', function(){
-    document.getElementById('detailModal').classList.remove('active');
-  });
-
-  document.getElementById('m-save-btn').addEventListener('click', function(){
-    if (!selectedModalEntry) return;
-    selectedModalEntry.zone = document.getElementById('m-zone').value;
-    selectedModalEntry.num = document.getElementById('m-num').value;
-    selectedModalEntry.typo = document.getElementById('m-typo').value;
-    selectedModalEntry.comment = document.getElementById('m-comment').value;
-
-    safeSet(STORE_KEY + "_" + currentViewTech, entries);
-    renderHistorique();
-    document.getElementById('detailModal').classList.remove('active');
-    toast("Mise à jour enregistrée");
-  });
-
-  document.getElementById('m-del-btn').addEventListener('click', function(){
-    if (!selectedModalEntry || !confirm("Supprimer cette intervention ?")) return;
-    entries = entries.filter(function(x){ return x !== selectedModalEntry; });
-    safeSet(STORE_KEY + "_" + currentViewTech, entries);
-    renderHistorique();
-    document.getElementById('detailModal').classList.remove('active');
-    toast("Intervention supprimée");
-  });
-
-  document.getElementById('hist-tech-select').querySelectorAll('button').forEach(function(b){
-    b.addEventListener('click', function(){
-      currentViewTech = b.dataset.val;
-      document.getElementById('hist-tech-select').querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
-      b.classList.add('selected');
-      entries = sortByDateDesc(safeGet(STORE_KEY + "_" + currentViewTech, []));
-      loadEntries();
-    });
-  });
-
-  document.getElementById('prevMonth').addEventListener('click', function(){ viewedMonth.setMonth(viewedMonth.getMonth() - 1); renderHistorique(); });
-  document.getElementById('nextMonth').addEventListener('click', function(){ viewedMonth.setMonth(viewedMonth.getMonth() + 1); renderHistorique(); });
-  document.getElementById('histSearch').addEventListener('input', renderHistorique);
-  document.getElementById('reloadBtn').addEventListener('click', loadEntries);
-
-  function renderCarburant(){
-    var list = document.getElementById('fuelList');
-    list.innerHTML = "";
-    var y = viewedMonth.getFullYear(), m = viewedMonth.getMonth();
-    var monthFuel = fuelEntries.filter(function(f){
-      var d = parseISO(f.date);
-      return d.getFullYear() === y && d.getMonth() === m;
-    });
-
-    var totMois = monthFuel.reduce(function(s,f){ return s + (f.montant||0); }, 0);
-    document.getElementById('fuelMonthTotal').textContent = "Total Mois : " + fmtEuro(totMois);
-
-    if (monthFuel.length === 0){
-      list.innerHTML = '<div style="color:var(--ink-muted); text-align:center; padding:20px;">Aucun plein enregistré.</div>';
-      return;
-    }
-
-    monthFuel.forEach(function(f){
-      var div = document.createElement('div');
-      div.className = 'card';
-      div.style.display = 'flex';
-      div.style.justifyContent = 'space-between';
-      div.style.alignItems = 'center';
-      div.innerHTML = 
-        '<div>' +
-          '<strong>' + fmtDateFR(f.date) + '</strong> · ' + escapeHtml(f.tech) +
-          (f.comment ? '<div style="font-size:11px; color:var(--ink-muted);">' + escapeHtml(f.comment) + '</div>' : '') +
-        '</div>' +
-        '<div style="font-family:var(--font-mono); color:var(--danger); font-weight:700;">' + fmtEuro(f.montant) + '</div>';
-      list.appendChild(div);
-    });
-  }
-
-  function renderTarifs(){
-    var tbody = document.getElementById('tariffRows');
-    tbody.innerHTML = "";
-    TYPOS.forEach(function(t){
-      var tr = document.createElement('tr');
-      tr.style.borderBottom = '1px solid var(--border)';
-      var tOrg = tariffs[t] ? tariffs[t].Orange : 0;
-      var tSfr = tariffs[t] ? tariffs[t].SFR : 0;
-      tr.innerHTML = 
-        '<td style="padding:8px;"><strong>' + escapeHtml(t) + '</strong></td>' +
-        '<td style="padding:8px;"><input type="number" step="0.01" style="width:70px; padding:4px; border:1px solid var(--border); border-radius:4px; background:var(--surface-alt); color:#FFF;" value="' + tOrg + '"></td>' +
-        '<td style="padding:8px;"><input type="number" step="0.01" style="width:70px; padding:4px; border:1px solid var(--border); border-radius:4px; background:var(--surface-alt); color:#FFF;" value="' + tSfr + '"></td>';
-      tbody.appendChild(tr);
-    });
-  }
-
-  function escapeHtml(s){
-    return String(s || '').replace(/[&<>"']/g, function(c){
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
-    });
-  }
-
-  document.addEventListener("DOMContentLoaded", function(){
-    loadEntries();
-  });
-
-})();
-</script>
-</body>
-</html>
+  function fmtDateFR(date
