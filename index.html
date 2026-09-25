@@ -452,7 +452,7 @@
       </table>
     </div>
 
-    <button class="btn-primary" id="exportXlsx" style="margin-top:12px; font-size:12px;">Exporter en Excel (.xlsx)</button>
+    <button class="btn-primary" id="exportXlsx" style="margin-top:12px; font-size:12px;">📊 Exporter en Excel (.xlsx)</button>
   </section>
 
   <section class="view" id="view-tarifs">
@@ -540,17 +540,18 @@
   var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUZ8Va_VV_J15W6gH26Xxq_MimoGbLfU_6cUUfxHhiRMqOMnBghSyWpkAx90zRtk1q/exec";
 
   var TYPOS = ["Aérien", "Souterrain", "Immeuble", "PLP", "PLP sans client", "SAV"];
-  var STORE_KEY = "raccordements_entries_v7";
-  var FUEL_STORE_KEY = "raccordements_fuel_v7";
-  var TARIFF_KEY = "raccordements_tarifs_v7";
+  var STORE_KEY = "raccordements_entries_v8";
+  var FUEL_STORE_KEY = "raccordements_fuel_v8";
+  var TARIFF_KEY = "raccordements_tarifs_v8";
 
+  // Grille tarifaire corrigée (SFR mis à jour selon vos consignes)
   var DEFAULT_TARIFFS = {
-    "Aérien": {Orange:160.00, SFR:140.50},
-    "Souterrain": {Orange:112.00, SFR:85.00},
-    "Immeuble": {Orange:54.40, SFR:50.00},
-    "PLP": {Orange:36.00, SFR:25.20},
-    "PLP sans client": {Orange:12.00, SFR:12.00},
-    "SAV": {Orange:36.00, SFR:23.40}
+    "Aérien": {Orange: 160.00, SFR: 140.00},
+    "Souterrain": {Orange: 112.00, SFR: 90.00},
+    "Immeuble": {Orange: 54.40, SFR: 50.00},
+    "PLP": {Orange: 36.00, SFR: 25.00},
+    "PLP sans client": {Orange: 12.00, SFR: 12.00},
+    "SAV": {Orange: 36.00, SFR: 10.00}
   };
 
   function escapeHtml(str) {
@@ -570,7 +571,7 @@
   }
 
   var currentViewTech = "Brendan";
-  var fuelTechSelected = "Brendan"; // Technicien par défaut pour le carburant
+  var fuelTechSelected = "Brendan";
   var entries = safeGet(STORE_KEY + "_" + currentViewTech, []);
   var fuelEntries = safeGet(FUEL_STORE_KEY, []);
   var tariffs = safeGet(TARIFF_KEY, DEFAULT_TARIFFS);
@@ -736,7 +737,7 @@
     document.getElementById('wrap-tech-solo').style.display = (v === 'Solo') ? 'block' : 'none';
   });
 
-  // GESTION SEGMENTÉE DU CHOIX TECHNICIEN CARBURANT
+  // GESTION TECHNICIEN CARBURANT
   var fuelTechWrap = document.getElementById('fuel-tech');
   if (fuelTechWrap) {
     fuelTechWrap.querySelectorAll('button').forEach(function(b){
@@ -898,10 +899,8 @@
   // Affichage Historique
   var MOIS_FR = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 
-  function renderHistorique(){
+  function getFilteredMonthEntries() {
     var y = viewedMonth.getFullYear(), m = viewedMonth.getMonth();
-    document.getElementById('monthLabel').textContent = MOIS_FR[m] + " " + y;
-
     var monthEntries = entries.filter(function(e){
       var d = parseISO(e.date);
       return d.getFullYear() === y && d.getMonth() === m;
@@ -910,11 +909,18 @@
     var q = document.getElementById('histSearch').value.trim().toLowerCase();
     if (q) {
       monthEntries = monthEntries.filter(function(e){
-        return (e.num + " " + (e.comment||"") + " " + e.typo + " " + e.op).toLowerCase().indexOf(q) !== -1;
+        return (e.num + " " + (e.comment||"") + " " + e.typo + " " + e.op + " " + (e.addr||"")).toLowerCase().indexOf(q) !== -1;
       });
     }
 
-    monthEntries = sortByDateDesc(monthEntries);
+    return sortByDateDesc(monthEntries);
+  }
+
+  function renderHistorique(){
+    var y = viewedMonth.getFullYear(), m = viewedMonth.getMonth();
+    document.getElementById('monthLabel').textContent = MOIS_FR[m] + " " + y;
+
+    var monthEntries = getFilteredMonthEntries();
 
     var totMois = monthEntries.reduce(function(s,e){ return s + (e.montant||0); }, 0);
     document.getElementById('totalGlobalBadge').textContent = MOIS_FR[m] + " : " + fmtEuro(totMois);
@@ -981,58 +987,136 @@
     document.getElementById('detailModal').classList.remove('active');
   });
 
+  var modalSeg = document.getElementById('m-statut-seg');
+  if (modalSeg) {
+    modalSeg.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', function(){
+        if (selectedModalEntry) selectedModalEntry.statut = b.dataset.val;
+        modalSeg.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
+        b.classList.add('selected');
+      });
+    });
+  }
+
   document.getElementById('m-save-btn').addEventListener('click', function(){
     if (!selectedModalEntry) return;
-    selectedModalEntry.num = document.getElementById('m-num').value;
-    selectedModalEntry.typo = document.getElementById('m-typo').value;
-    selectedModalEntry.comment = document.getElementById('m-comment').value;
+    selectedModalEntry.num = document.getElementById('m-num').value.trim();
+    selectedModalEntry.techSolo = document.getElementById('m-planning').value.trim();
+    selectedModalEntry.typo = document.getElementById('m-typo').value.trim();
+    selectedModalEntry.comment = document.getElementById('m-comment').value.trim();
+
+    // Recalcul du montant
+    selectedModalEntry.montant = computeMontant(selectedModalEntry.typo, selectedModalEntry.statut, selectedModalEntry.op);
 
     safeSet(STORE_KEY + "_" + currentViewTech, entries);
     renderHistorique();
     document.getElementById('detailModal').classList.remove('active');
-    toast("Mise à jour enregistrée");
+    toast("Intervention mise à jour");
   });
 
   document.getElementById('m-del-btn').addEventListener('click', function(){
-    if (!selectedModalEntry || !confirm("Supprimer cette intervention ?")) return;
-    entries = entries.filter(function(x){ return x !== selectedModalEntry; });
+    if (!selectedModalEntry) return;
+    if (!confirm("Voulez-vous vraiment supprimer cette intervention ?")) return;
+    entries = entries.filter(function(x){ return (x.id || x.num) !== (selectedModalEntry.id || selectedModalEntry.num); });
     safeSet(STORE_KEY + "_" + currentViewTech, entries);
     renderHistorique();
     document.getElementById('detailModal').classList.remove('active');
     toast("Intervention supprimée");
   });
 
-  document.getElementById('hist-tech-select').querySelectorAll('button').forEach(function(b){
-    b.addEventListener('click', function(){
-      currentViewTech = b.dataset.val;
-      document.getElementById('hist-tech-select').querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
-      b.classList.add('selected');
-      entries = sortByDateDesc(safeGet(STORE_KEY + "_" + currentViewTech, []));
-      loadEntries();
+  // Sélection du technicien dans l'historique
+  var histTechWrap = document.getElementById('hist-tech-select');
+  if (histTechWrap) {
+    histTechWrap.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', function(){
+        currentViewTech = b.dataset.val;
+        histTechWrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('selected'); });
+        b.classList.add('selected');
+        entries = safeGet(STORE_KEY + "_" + currentViewTech, []);
+        loadEntries();
+      });
     });
+  }
+
+  // Navigation Mois
+  document.getElementById('prevMonth').addEventListener('click', function(){
+    viewedMonth.setMonth(viewedMonth.getMonth() - 1);
+    renderHistorique();
+    renderCarburant();
   });
 
-  document.getElementById('prevMonth').addEventListener('click', function(){ viewedMonth.setMonth(viewedMonth.getMonth() - 1); renderHistorique(); renderCarburant(); });
-  document.getElementById('nextMonth').addEventListener('click', function(){ viewedMonth.setMonth(viewedMonth.getMonth() + 1); renderHistorique(); renderCarburant(); });
-  document.getElementById('reloadBtn').addEventListener('click', function(){ loadEntries(); loadFuel(); });
-  document.getElementById('histSearch').addEventListener('input', function(){ renderHistorique(); });
+  document.getElementById('nextMonth').addEventListener('click', function(){
+    viewedMonth.setMonth(viewedMonth.getMonth() + 1);
+    renderHistorique();
+    renderCarburant();
+  });
 
-  document.getElementById('exportXlsx').addEventListener('click', function(){
-    if (typeof XLSX === 'undefined') {
-      toast("Bibliothèque XLSX non chargée");
+  // Recherche
+  document.getElementById('histSearch').addEventListener('input', function(){
+    renderHistorique();
+  });
+
+  // Bouton Synchro
+  document.getElementById('reloadBtn').addEventListener('click', function(){
+    loadEntries();
+    loadFuel();
+  });
+
+  // FONCTION EXPORTATION EXCEL (.XLSX)
+  function exportToExcel() {
+    var dataList = getFilteredMonthEntries();
+
+    if (dataList.length === 0) {
+      toast("Aucune donnée à exporter !");
       return;
     }
-    var ws = XLSX.utils.json_to_sheet(entries);
+
+    var excelRows = dataList.map(function(item) {
+      return {
+        "Date": fmtDateFR(item.date),
+        "Référence / N°": item.num || "",
+        "Opérateur": item.op || "",
+        "Typologie": item.typo || "",
+        "Statut": item.statut || "",
+        "Mode": item.solo || "Solo",
+        "Technicien": item.techSolo || currentViewTech,
+        "Adresse": item.addr || "",
+        "Montant (€)": item.montant || 0,
+        "Commentaire": item.comment || ""
+      };
+    });
+
+    var ws = XLSX.utils.json_to_sheet(excelRows);
+    
+    // Largeurs de colonnes personnalisées
+    ws['!cols'] = [
+      { wch: 12 }, // Date
+      { wch: 16 }, // Réf
+      { wch: 12 }, // Opérateur
+      { wch: 18 }, // Typologie
+      { wch: 12 }, // Statut
+      { wch: 10 }, // Mode
+      { wch: 14 }, // Technicien
+      { wch: 30 }, // Adresse
+      { wch: 12 }, // Montant
+      { wch: 25 }  // Commentaire
+    ];
+
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Interventions");
-    XLSX.writeFile(wb, "Raccordements_" + currentViewTech + ".xlsx");
-  });
+
+    var y = viewedMonth.getFullYear();
+    var m = String(viewedMonth.getMonth() + 1).padStart(2, '0');
+    var fileName = "Raccordements_" + currentViewTech + "_" + y + "-" + m + ".xlsx";
+
+    XLSX.writeFile(wb, fileName);
+    toast("Export Excel généré !");
+  }
+
+  document.getElementById('exportXlsx').addEventListener('click', exportToExcel);
 
   // Initialisation
-  updatePreview();
   loadEntries();
-  loadFuel();
-
 })();
 </script>
 </body>
