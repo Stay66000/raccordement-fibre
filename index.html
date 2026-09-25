@@ -233,6 +233,14 @@
     font-size: 10px;
     font-weight: 700;
   }
+  .badge-tech {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ADE80;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+  }
   .tarif-val {
     font-family: var(--font-mono);
     font-weight: 700;
@@ -388,6 +396,13 @@
         <input type="date" id="fuel-date">
       </div>
       <div class="field">
+        <label for="fuel-tech">Technicien</label>
+        <select id="fuel-tech">
+          <option value="Brendan">Brendan</option>
+          <option value="Hamlili">Hamlili</option>
+        </select>
+      </div>
+      <div class="field">
         <label for="fuel-amount">Montant Carburant (€)</label>
         <input type="number" step="0.01" id="fuel-amount" placeholder="60.00">
       </div>
@@ -531,9 +546,9 @@
   var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUZ8Va_VV_J15W6gH26Xxq_MimoGbLfU_6cUUfxHhiRMqOMnBghSyWpkAx90zRtk1q/exec";
 
   var TYPOS = ["Aérien", "Souterrain", "Immeuble", "PLP", "PLP sans client", "SAV"];
-  var STORE_KEY = "raccordements_entries_v7";
-  var FUEL_STORE_KEY = "raccordements_fuel_v7";
-  var TARIFF_KEY = "raccordements_tarifs_v7";
+  var STORE_KEY = "raccordements_entries_v8";
+  var FUEL_STORE_KEY = "raccordements_fuel_v8";
+  var TARIFF_KEY = "raccordements_tarifs_v8";
 
   var DEFAULT_TARIFFS = {
     "Aérien": {Orange:160.00, SFR:140.50},
@@ -631,6 +646,7 @@
     setTimeout(function(){ el.classList.remove('show'); }, 2200);
   }
 
+  // FUSION ROBUSTE DE LA SYNCHRO (Local + Remote)
   function loadEntries(){
     renderHistorique();
     if (!SCRIPT_URL) return;
@@ -642,8 +658,15 @@
       .then(function(data){
         if (Array.isArray(data)){
           var map = {};
-          data.forEach(function(e){ map[e.num || e.id] = e; });
-          entries = sortByDateDesc(Object.values(map));
+          // Charger local d'abord
+          entries.forEach(function(e){ if (e.num || e.id) map[e.num || e.id] = e; });
+          // Fusionner avec le distant
+          data.forEach(function(e){ map[e.num || e.id] = Object.assign({}, map[e.num || e.id] || {}, e); });
+          
+          var keys = Object.keys(map);
+          var merged = keys.map(function(k){ return map[k]; });
+
+          entries = sortByDateDesc(merged);
           safeSet(STORE_KEY + "_" + currentViewTech, entries);
           renderHistorique();
           toast("À jour (" + currentViewTech + ")");
@@ -660,13 +683,34 @@
       .then(function(r){ return r.json(); })
       .then(function(data){
         if (Array.isArray(data)){
-          fuelEntries = sortByDateDesc(data);
+          var map = {};
+          fuelEntries.forEach(function(f){ var key = f.id || (f.date + "_" + f.montant); map[key] = f; });
+          data.forEach(function(f){ var key = f.id || (f.date + "_" + f.montant); map[key] = Object.assign({}, map[key] || {}, f); });
+
+          var keys = Object.keys(map);
+          var merged = keys.map(function(k){ return map[k]; });
+
+          fuelEntries = sortByDateDesc(merged);
           safeSet(FUEL_STORE_KEY, fuelEntries);
           renderCarburant();
         }
-      });
+      })
+      .catch(function(){});
   }
   window.loadFuel = loadFuel;
+
+  // Envoi asynchrone sécurisé vers Google Apps Script
+  function postToScript(payload) {
+    if (!SCRIPT_URL) return;
+    try {
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+      }).catch(function(err){ console.warn("Erreur post", err); });
+    } catch(e) {}
+  }
 
   // Navigation Onglets
   document.querySelectorAll('.tabbar button').forEach(function(btn){
@@ -770,19 +814,13 @@
     renderHistorique();
     toast("Intervention ajoutée !");
 
-    if (SCRIPT_URL) {
-      fetch(SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(entry)
-      });
-    }
+    postToScript(entry);
   });
 
   // Carburant Saisie & Suppression
   document.getElementById('fuel-save').addEventListener('click', function(){
     var date = document.getElementById('fuel-date').value;
+    var tech = document.getElementById('fuel-tech').value;
     var amount = parseFloat(document.getElementById('fuel-amount').value);
     var comment = document.getElementById('fuel-comment').value.trim();
 
@@ -795,7 +833,7 @@
       id: "FUEL-" + Date.now(),
       date: date,
       montant: amount,
-      tech: currentViewTech,
+      tech: tech,
       comment: comment
     };
 
@@ -805,24 +843,26 @@
     renderCarburant();
     document.getElementById('fuel-amount').value = "";
     document.getElementById('fuel-comment').value = "";
-    toast("Plein enregistré !");
+    toast("Plein de " + tech + " enregistré !");
 
-    if (SCRIPT_URL) {
-      fetch(SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(Object.assign({ type: "fuel" }, fuelEntry))
-      });
-    }
+    postToScript(Object.assign({ type: "fuel" }, fuelEntry));
   });
 
-  function deleteFuel(id) {
+  function deleteFuel(fid) {
     if (!confirm("Supprimer ce plein d'essence ?")) return;
-    fuelEntries = fuelEntries.filter(function(f){ return (f.id || f.date + f.montant) !== id; });
+    var deleted = null;
+    fuelEntries = fuelEntries.filter(function(f){
+      var itemKey = f.id || (f.date + "_" + f.montant);
+      if (itemKey === fid) { deleted = f; return false; }
+      return true;
+    });
     safeSet(FUEL_STORE_KEY, fuelEntries);
     renderCarburant();
     toast("Plein supprimé");
+
+    if (deleted) {
+      postToScript({ action: "delete", type: "fuel", id: deleted.id, date: deleted.date, montant: deleted.montant });
+    }
   }
 
   function renderCarburant(){
@@ -838,7 +878,7 @@
     document.getElementById('fuelMonthTotal').textContent = "Total Mois : " + fmtEuro(totMois);
 
     if (monthFuel.length === 0){
-      list.innerHTML = '<div style="color:var(--ink-muted); text-align:center; padding:20px;">Aucun plein enregistré.</div>';
+      list.innerHTML = '<div style="color:var(--ink-muted); text-align:center; padding:20px;">Aucun plein enregistré ce mois-ci.</div>';
       return;
     }
 
@@ -851,8 +891,8 @@
       div.style.alignItems = 'center';
       div.innerHTML = 
         '<div>' +
-          '<strong>' + fmtDateFR(f.date) + '</strong>' +
-          (f.comment ? '<div style="font-size:11px; color:var(--ink-muted);">' + escapeHtml(f.comment) + '</div>' : '') +
+          '<strong>' + fmtDateFR(f.date) + '</strong> <span class="badge-tech">' + escapeHtml(f.tech || 'Brendan') + '</span>' +
+          (f.comment ? '<div style="font-size:11px; color:var(--ink-muted); margin-top:2px;">' + escapeHtml(f.comment) + '</div>' : '') +
         '</div>' +
         '<div style="display:flex; align-items:center; gap:10px;">' +
           '<span style="font-family:var(--font-mono); color:var(--danger); font-weight:700;">' + fmtEuro(f.montant) + '</span>' +
@@ -947,15 +987,20 @@
     renderHistorique();
     document.getElementById('detailModal').classList.remove('active');
     toast("Mise à jour enregistrée");
+
+    postToScript(Object.assign({ action: "update" }, selectedModalEntry));
   });
 
   document.getElementById('m-del-btn').addEventListener('click', function(){
     if (!selectedModalEntry || !confirm("Supprimer cette intervention ?")) return;
-    entries = entries.filter(function(x){ return x !== selectedModalEntry; });
+    var target = selectedModalEntry;
+    entries = entries.filter(function(x){ return x !== target; });
     safeSet(STORE_KEY + "_" + currentViewTech, entries);
     renderHistorique();
     document.getElementById('detailModal').classList.remove('active');
     toast("Intervention supprimée");
+
+    postToScript({ action: "delete", id: target.id, num: target.num });
   });
 
   document.getElementById('hist-tech-select').querySelectorAll('button').forEach(function(b){
@@ -971,7 +1016,10 @@
   document.getElementById('prevMonth').addEventListener('click', function(){ viewedMonth.setMonth(viewedMonth.getMonth() - 1); renderHistorique(); });
   document.getElementById('nextMonth').addEventListener('click', function(){ viewedMonth.setMonth(viewedMonth.getMonth() + 1); renderHistorique(); });
   document.getElementById('histSearch').addEventListener('input', renderHistorique);
-  document.getElementById('reloadBtn').addEventListener('click', loadEntries);
+  document.getElementById('reloadBtn').addEventListener('click', function(){
+    loadEntries();
+    loadFuel();
+  });
 
   function renderTarifs(){
     var tbody = document.getElementById('tariffRows');
